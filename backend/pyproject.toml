@@ -17,6 +17,8 @@ dependencies = [
     "sentry-sdk[django]>=2.14",
     "phonenumbers>=8.13",
     "pillow>=11.0",
+    "gunicorn>=23.0",
+    "whitenoise[brotli]>=6.7",
 ]
 
 [dependency-groups]
