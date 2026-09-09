@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { DonationLink, PandalPage } from "@/lib/api";
 import { rupees } from "@/lib/api";
+import { ApiError, api } from "@/lib/visitor";
 
 type Status = { tone: "ok" | "error"; message: string } | null;
 
@@ -50,28 +51,22 @@ export function LinkDonate({ page, link }: { page: PandalPage; link: DonationLin
     else if (offeringId) body.offering_id = offeringId;
 
     try {
-      const response = await fetch("/api/donations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Idempotency-Key": crypto.randomUUID(),
-        },
-        body: JSON.stringify(body),
+      // Same helper as the page's own form: a large donation needs the session
+      // header, and a bare fetch would send none.
+      const payload = await api<any>("/donations", {
+        method: "POST", idempotent: true, json: body,
       });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        setStatus({ tone: "error", message: payload?.error?.message ?? "That did not work." });
-      } else {
-        setStatus({
-          tone: "ok",
-          message: `Thank you. ${rupees(payload.amount_paise)} is ready to pay — order ${
-            payload.order_id.slice(0, 8)
-          }.`,
-        });
-      }
-    } catch {
-      setStatus({ tone: "error", message: "We could not reach the server. Try again." });
+      setStatus({
+        tone: "ok",
+        message: `Thank you. ${rupees(payload.amount_paise)} is ready to pay — order ${
+          payload.order_id.slice(0, 8)
+        }.`,
+      });
+    } catch (caught) {
+      setStatus({
+        tone: "error",
+        message: caught instanceof ApiError ? caught.message : "That did not work.",
+      });
     } finally {
       setBusy(false);
     }

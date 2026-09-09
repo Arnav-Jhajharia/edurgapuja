@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
  * Switching the element is the honest way to get both.
  */
 export function Card({ signedIn, onSubmit, className = "offer-card", children }: {
+  /** False whenever anything inside renders a form of its own. */
   signedIn: boolean;
   onSubmit: (event: React.FormEvent) => void;
   className?: string;

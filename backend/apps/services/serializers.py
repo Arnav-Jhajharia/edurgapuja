@@ -45,6 +45,10 @@ class DayAvailabilitySerializer(serializers.Serializer):
 
 
 class ServiceBookingCreateSerializer(serializers.Serializer):
+    # Which gateway to use. Ignored if it is not one this deployment
+    # has turned on, so a stale client cannot break checkout.
+    payment_provider = serializers.CharField(required=False, allow_blank=True,
+                                             max_length=20)
     service_id = serializers.UUIDField()
     date = serializers.DateField()
     quantity = serializers.IntegerField(min_value=1, default=1)

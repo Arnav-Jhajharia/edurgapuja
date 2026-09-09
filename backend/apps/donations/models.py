@@ -76,6 +76,12 @@ class Donation(BaseModel):
     link = models.ForeignKey(DonationLink, null=True, blank=True,
                              on_delete=models.SET_NULL, related_name="donations")
 
+    # Which verification let this through, for donations large enough to need
+    # one. Null below the threshold, which is most of them. PROTECT rather than
+    # SET_NULL: the whole point of the check is that it can be produced later.
+    kyc_check = models.ForeignKey("kyc.KycCheck", null=True, blank=True,
+                                  on_delete=models.PROTECT, related_name="donations")
+
     donor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                               on_delete=models.SET_NULL, related_name="donations")
     # Blank on purpose: leaving the name empty is how a donor stays anonymous,

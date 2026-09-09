@@ -117,6 +117,7 @@ class PassViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         payment = payments.create_payment(
             order=order,
             idempotency_key=request.headers.get("Idempotency-Key") or str(order.id),
+            provider_name=data.get("payment_provider", ""),
         )
 
         return Response({

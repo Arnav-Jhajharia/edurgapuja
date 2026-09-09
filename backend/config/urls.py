@@ -14,6 +14,7 @@ api_v1 = [
     path("", include("apps.orders.urls")),
     path("", include("apps.ops.urls")),
     path("", include("apps.passes.urls")),
+    path("", include("apps.kyc.urls")),
     path("", include("apps.payments.urls")),
 ]
 

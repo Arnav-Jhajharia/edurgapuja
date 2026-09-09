@@ -31,6 +31,10 @@ class PandalDayAvailabilitySerializer(serializers.Serializer):
 
 
 class PassPurchaseSerializer(serializers.Serializer):
+    # Which gateway to use. Ignored if it is not one this deployment
+    # has turned on, so a stale client cannot break checkout.
+    payment_provider = serializers.CharField(required=False, allow_blank=True,
+                                             max_length=20)
     config_id = serializers.UUIDField()
     visit_date = serializers.DateField()
     party_size = serializers.IntegerField(min_value=1, default=1)

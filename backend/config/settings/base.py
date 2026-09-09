@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "apps.common",
     "apps.geo",
     "apps.accounts.apps.AccountsConfig",
+    "apps.kyc",
     "apps.pandals",
     "apps.inventory",
     "apps.orders",
@@ -122,6 +123,25 @@ SITE_DOMAIN = env("SITE_DOMAIN", default="edurgapuja.app")
 # building changes; host resolution keeps working either way.
 PANDAL_ROUTING = env("PANDAL_ROUTING", default="subdomain")
 
+# Above this, a donation needs a verified PAN and therefore cannot be anonymous.
+# The number is an accountant's answer rather than an engineer's, so it is
+# configuration — see `apps/kyc/`.
+DONATION_KYC_THRESHOLD_PAISE = env.int("DONATION_KYC_THRESHOLD_PAISE", default=5_000_000)
+
+# Sandbox (sandbox.co.in) verifies the PAN. Without credentials a stub stands in
+# and the whole flow, including refusal, still works.
+# Which gateways are on, in preference order. A committee losing an evening to
+# one gateway's outage should be a setting away from taking money again.
+PAYMENT_PROVIDERS = env("PAYMENT_PROVIDERS", default="razorpay,cashfree")
+CASHFREE_APP_ID = env("CASHFREE_APP_ID", default="")
+CASHFREE_SECRET_KEY = env("CASHFREE_SECRET_KEY", default="")
+CASHFREE_BASE_URL = env("CASHFREE_BASE_URL", default="https://sandbox.cashfree.com/pg")
+
+SANDBOX_BASE_URL = env("SANDBOX_BASE_URL", default="https://api.sandbox.co.in")
+SANDBOX_API_KEY = env("SANDBOX_API_KEY", default="")
+SANDBOX_API_SECRET = env("SANDBOX_API_SECRET", default="")
+SANDBOX_API_VERSION = env("SANDBOX_API_VERSION", default="1.0")
+
 RESERVED_SUBDOMAINS = {
     "www", "api", "admin", "app", "mail", "smtp", "static", "assets", "cdn",
     "staging", "dev", "test", "help", "support", "status", "blog", "docs",
@@ -140,7 +160,7 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "apps.common.errors.exception_handler",
     # `login` is the only unauthenticated endpoint where guessing is possible,
     # so it is rate-limited like OTP rather than like an ordinary read.
-    "DEFAULT_THROTTLE_RATES": {"otp": "8/hour", "login": "10/hour",
+    "DEFAULT_THROTTLE_RATES": {"otp": "8/hour", "login": "10/hour", "kyc": "12/hour",
                                "anon": "60/min", "user": "600/min"},
 }
 

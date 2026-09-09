@@ -152,3 +152,23 @@ export async function verifyCode(phone: string, code: string) {
   setSession(body.access, body.refresh, phone);
   return body;
 }
+
+// --- KYC -------------------------------------------------------------------
+
+export type KycStatus = {
+  threshold_paise: number;
+  verified: boolean;
+  check: { masked_number: string; name_on_record: string } | null;
+};
+
+/** Where the threshold is, and whether this donor is past it already. */
+export const kycStatus = () => api<KycStatus>("/kyc/status");
+
+/** Verify a PAN. Throws ApiError with code `kyc_failed` if the register says no. */
+export const verifyPan = (pan: string, name: string) =>
+  api("/kyc/pan", { method: "POST", json: { pan, name } });
+
+/** Which gateways this deployment will take money through. */
+export const paymentProviders = () =>
+  api<{ providers: string[] }>("/payments/providers");
+

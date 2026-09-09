@@ -14,6 +14,10 @@ class DonationLinkSerializer(serializers.ModelSerializer):
 
 
 class DonationCreateSerializer(serializers.Serializer):
+    # Which gateway to use. Ignored if it is not one this deployment
+    # has turned on, so a stale client cannot break checkout.
+    payment_provider = serializers.CharField(required=False, allow_blank=True,
+                                             max_length=20)
     pandal_id = serializers.UUIDField()
     offering_id = serializers.UUIDField(required=False, allow_null=True)
     amount_paise = serializers.IntegerField(required=False, min_value=100)

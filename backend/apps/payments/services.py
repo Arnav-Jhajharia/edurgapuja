@@ -23,12 +23,14 @@ logger = logging.getLogger(__name__)
 
 
 @transaction.atomic
-def create_payment(*, order: Order, idempotency_key: str) -> PaymentOrder:
+def create_payment(*, order: Order, idempotency_key: str, provider_name: str = "") -> PaymentOrder:
     existing = PaymentOrder.objects.filter(idempotency_key=idempotency_key).first()
     if existing:
+        # A retry keeps the provider the first attempt chose. Switching midway
+        # would leave two live orders at two gateways for one payment.
         return existing
 
-    provider = get_provider()
+    provider = get_provider(provider_name)
     created = provider.create_order(amount_paise=order.total_paise, receipt=str(order.id))
 
     try:

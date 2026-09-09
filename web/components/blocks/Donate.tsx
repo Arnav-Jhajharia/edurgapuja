@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { Card } from "@/components/Card";
+import { KycStep } from "@/components/KycStep";
+import { SignIn } from "@/components/SignIn";
 import type { PandalPage } from "@/lib/api";
 import { blockOf, rupees } from "@/lib/api";
+import { ApiError, api, getPhone, getToken, kycStatus, paymentProviders } from "@/lib/visitor";
 
 type Status = { tone: "ok" | "error"; message: string } | null;
 
@@ -17,6 +21,25 @@ export function Donate({ page }: { page: PandalPage }) {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<Status>(null);
+
+  // Above a threshold a donation has to be reported, so it needs a verified PAN
+  // and cannot be anonymous. The threshold is fetched rather than assumed: the
+  // first a donor hears of it should not be a refusal at the last step.
+  const [threshold, setThreshold] = useState<number | null>(null);
+  const [verified, setVerified] = useState(false);
+  const [signedInAs, setSignedInAs] = useState<string | null>(null);
+  const [providers, setProviders] = useState<string[]>([]);
+  const [provider, setProvider] = useState("");
+
+  useEffect(() => {
+    setSignedInAs(getToken() ? getPhone() : null);
+    kycStatus()
+      .then((s) => { setThreshold(s.threshold_paise); setVerified(s.verified); })
+      .catch(() => setThreshold(null));
+    paymentProviders()
+      .then((p) => setProviders(p.providers))
+      .catch(() => setProviders([]));
+  }, []);
 
   if (!page.capabilities.accepts_donations) return null;
 
@@ -35,31 +58,26 @@ export function Donate({ page }: { page: PandalPage }) {
     } else if (offeringId) {
       body.offering_id = offeringId;
     }
+    if (provider) body.payment_provider = provider;
 
     try {
-      const response = await fetch("/api/donations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // The client retries; the network duplicates. Same key, same order.
-          "Idempotency-Key": crypto.randomUUID(),
-        },
-        body: JSON.stringify(body),
+      // Through the session helper, not a bare fetch: a donation large enough
+      // to need a PAN also needs the Authorization header, and a raw fetch
+      // sends none — which reads on the server as an anonymous donor.
+      const payload = await api<any>("/donations", {
+        method: "POST", idempotent: true, json: body,
       });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        setStatus({ tone: "error", message: payload?.error?.message ?? "That did not work." });
-      } else {
-        setStatus({
-          tone: "ok",
-          message: `Thank you. ${rupees(payload.amount_paise)} is ready to pay — order ${
-            payload.order_id.slice(0, 8)
-          }.`,
-        });
-      }
-    } catch {
-      setStatus({ tone: "error", message: "We could not reach the server. Try again." });
+      setStatus({
+        tone: "ok",
+        message: `Thank you. ${rupees(payload.amount_paise)} is ready to pay — order ${
+          payload.order_id.slice(0, 8)
+        }.`,
+      });
+    } catch (caught) {
+      setStatus({
+        tone: "error",
+        message: caught instanceof ApiError ? caught.message : "That did not work.",
+      });
     } finally {
       setBusy(false);
     }
@@ -68,6 +86,13 @@ export function Donate({ page }: { page: PandalPage }) {
   const selectedAmount = custom.trim()
     ? Math.round(Number(custom) * 100)
     : offerings.find((o) => o.id === offeringId)?.amount_paise ?? 0;
+
+  // Worked out from the amount as it is typed, so the requirement appears while
+  // the donor is still deciding rather than after they have committed.
+  const overThreshold = threshold !== null && selectedAmount >= threshold;
+  const needsSignIn = overThreshold && !signedInAs;
+  const needsKyc = overThreshold && Boolean(signedInAs) && !verified;
+  const thresholdLabel = threshold !== null ? rupees(threshold) : "";
 
   return (
     <section className="section on-primary" id="donate">
@@ -80,7 +105,10 @@ export function Donate({ page }: { page: PandalPage }) {
           <p style={{ maxWidth: "42ch", opacity: 0.92 }}>{content?.body}</p>
         </div>
 
-        <form className="offer-card" onSubmit={submit}>
+        {/* A <form> only when nothing else is blocking. Both SignIn and
+            KycStep own forms of their own, and HTML forms cannot nest — an
+            inner submit fires the outer one and reloads the page. */}
+        <Card signedIn={!needsSignIn && !needsKyc} onSubmit={submit} className="offer-card">
           <p className="eyebrow" style={{ margin: 0 }}>
             {content?.card_eyebrow ?? "Choose your offering"}
           </p>
@@ -134,21 +162,47 @@ export function Donate({ page }: { page: PandalPage }) {
             />
           </label>
 
-          <p className="note">
-            No account needed. Leaving your name blank donates anonymously, and the receipt then
-            carries no name.
-          </p>
+          {providers.length > 1 && (
+            <label className="field">
+              <span>Pay with</span>
+              <select value={provider} onChange={(event) => setProvider(event.target.value)}>
+                {providers.map((name) => (
+                  <option key={name} value={name}>
+                    {name === "razorpay" ? "Razorpay" : "Cashfree"}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
-          <button className="btn btn-ink" type="submit" disabled={busy || selectedAmount <= 0}>
-            {busy ? "Working…" : `Donate ${selectedAmount > 0 ? rupees(selectedAmount) : ""}`}
-          </button>
+          {needsSignIn ? (
+            <SignIn
+              reason={`Donations over ${thresholdLabel} have to be reported by the committee, so this one cannot be anonymous.`}
+              onSignedIn={(phone) => { setSignedInAs(phone); kycStatus()
+                .then((s) => setVerified(s.verified)).catch(() => undefined); }}
+            />
+          ) : needsKyc ? (
+            <KycStep threshold={thresholdLabel} onVerified={() => setVerified(true)} />
+          ) : (
+            <>
+              <p className="note">
+                {overThreshold
+                  ? "Verified. Your receipt will carry your name as registered."
+                  : "No account needed. Leaving your name blank donates anonymously, and the receipt then carries no name."}
+              </p>
+
+              <button className="btn btn-ink" type="submit" disabled={busy || selectedAmount <= 0}>
+                {busy ? "Working…" : `Donate ${selectedAmount > 0 ? rupees(selectedAmount) : ""}`}
+              </button>
+            </>
+          )}
 
           {status && (
             <p className="status" data-tone={status.tone} role="status">
               {status.message}
             </p>
           )}
-        </form>
+        </Card>
       </div>
     </section>
   );

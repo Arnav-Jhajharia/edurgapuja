@@ -9,6 +9,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 
 from apps.common.errors import ValidationFailedError
+from apps.kyc import services as kyc
 from apps.orders import services as orders
 from apps.orders.models import OrderLine
 from apps.pandals.models import Pandal
@@ -36,6 +37,12 @@ def start_donation(*, data: dict, user=None) -> tuple[Donation, "orders.Order"]:
         raise ValidationFailedError("A donation has to be more than nothing.",
                                     fields={"amount_paise": "Enter an amount."})
 
+    # Above the threshold the committee has to be able to report this donation,
+    # which means it cannot be anonymous and the PAN has to be a real one. The
+    # check happens *before* the order exists, so a donor who has to stop and
+    # verify has not left a half-finished order behind them.
+    kyc_check = kyc.guard_donation(amount_paise=amount_paise, user=user)
+
     link = None
     if data.get("link_token"):
         link = DonationLink.objects.filter(token=data["link_token"], pandal=pandal,
@@ -54,5 +61,6 @@ def start_donation(*, data: dict, user=None) -> tuple[Donation, "orders.Order"]:
         donor_name=data.get("donor_name", ""),
         message=data.get("message", ""),
         amount_paise=amount_paise,
+        kyc_check=kyc_check,
     )
     return donation, order

@@ -39,11 +39,13 @@ class DonationCreateView(APIView):
     def post(self, request):
         payload = DonationCreateSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
+        data = payload.validated_data
 
-        donation, order = start_donation(data=payload.validated_data, user=request.user)
+        donation, order = start_donation(data=data, user=request.user)
         payment = payments.create_payment(
             order=order,
             idempotency_key=request.headers.get("Idempotency-Key") or str(order.id),
+            provider_name=data.get("payment_provider", ""),
         )
 
         return Response({
