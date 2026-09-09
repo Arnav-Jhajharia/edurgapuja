@@ -150,6 +150,13 @@ REST_FRAMEWORK = {
 # `apps/accounts/passwords.py`.
 DEV_LOGIN_PASSWORD = env("DEV_LOGIN_PASSWORD", default="")
 
+# The platform's first Super Admin. Every other administrator is granted by one
+# who already exists, which leaves the first with nowhere to come from — so it
+# comes from configuration, applied idempotently on deploy. See
+# `apps/accounts/management/commands/bootstrap_admin.py`.
+BOOTSTRAP_ADMIN_PHONE = env("BOOTSTRAP_ADMIN_PHONE", default="")
+BOOTSTRAP_ADMIN_PASSWORD = env("BOOTSTRAP_ADMIN_PASSWORD", default="")
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),

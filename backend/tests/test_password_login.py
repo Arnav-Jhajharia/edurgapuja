@@ -199,3 +199,51 @@ def test_the_client_is_told_when_it_is_talking_to_a_demo(api):
 @override_settings(DEBUG=False, DEV_LOGIN_PASSWORD="")
 def test_a_real_deployment_says_so(api):
     assert api.get(reverse("auth-methods")).json()["shared_dev_password"] is False
+
+
+# --------------------------------------------------------------------------
+# The first administrator
+# --------------------------------------------------------------------------
+
+def test_bootstrapping_creates_the_first_super_admin(db):
+    """Every other admin is granted by one who already exists. The first has
+    nowhere to come from, so it comes from configuration."""
+    from django.core.management import call_command
+
+    call_command("bootstrap_admin", phone="+919812349999", password="a-long-first-password")
+
+    user = User.objects.get(phone="+919812349999")
+    assert user.memberships.get().role == Role.SUPER_ADMIN
+    assert user.check_password("a-long-first-password")
+
+
+def test_bootstrapping_twice_changes_nothing(db):
+    """It runs on every deploy, so it has to be safe to run on every deploy."""
+    from django.core.management import call_command
+
+    call_command("bootstrap_admin", phone="+919812349998", password="first-password-here")
+    call_command("bootstrap_admin", phone="+919812349998", password="first-password-here")
+
+    assert AdminMembership.objects.filter(user__phone="+919812349998").count() == 1
+    assert User.objects.filter(phone="+919812349998").count() == 1
+
+
+def test_bootstrapping_rotates_the_password(db):
+    """Rotating the platform's first password should be a variable change and a
+    redeploy, not a shell session."""
+    from django.core.management import call_command
+
+    call_command("bootstrap_admin", phone="+919812349997", password="the-old-password")
+    call_command("bootstrap_admin", phone="+919812349997", password="the-new-password")
+
+    user = User.objects.get(phone="+919812349997")
+    assert user.check_password("the-new-password")
+
+
+def test_bootstrapping_with_nothing_configured_does_nothing(db):
+    from django.core.management import call_command
+
+    call_command("bootstrap_admin")
+
+    assert not AdminMembership.objects.filter(role=Role.SUPER_ADMIN).exists()
+
