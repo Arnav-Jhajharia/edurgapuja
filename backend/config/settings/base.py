@@ -116,6 +116,12 @@ RAZORPAY_WEBHOOK_SECRET = env("RAZORPAY_WEBHOOK_SECRET", default="")
 
 # --- Web ---
 SITE_DOMAIN = env("SITE_DOMAIN", default="edurgapuja.app")
+# "subdomain" gives every committee <slug>.<SITE_DOMAIN>, which is the intended shape
+# and needs a wildcard certificate. "path" serves the same pages from
+# <SITE_DOMAIN>/p/<slug> for deployments that cannot issue one. Only link
+# building changes; host resolution keeps working either way.
+PANDAL_ROUTING = env("PANDAL_ROUTING", default="subdomain")
+
 RESERVED_SUBDOMAINS = {
     "www", "api", "admin", "app", "mail", "smtp", "static", "assets", "cdn",
     "staging", "dev", "test", "help", "support", "status", "blog", "docs",

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 import { api, list, rupees } from "@/lib/admin";
 
+import { pandalDisplayHost, pandalHref } from "@/lib/urls";
+
 import { Field, Form, Panel, Pill, Select, Table, Tile } from "./ui";
 
 export function SuperPanel({ screen }: { screen: string }) {
@@ -105,7 +107,8 @@ function Pandals() {
                    placeholder={suggested || "shobhabazar-rajbari"}
                    onChange={(e) => setSlug(e.target.value)} />
             <p className="hint">
-              Their page will be <code>{(slug || suggested) || "…"}.edurgapuja.app</code>.
+              Their page will be{" "}
+              <code>{pandalDisplayHost((slug || suggested) || "…")}</code>.
               Leave blank to use the name. This cannot be changed afterwards without a
               redirect, so it is worth getting right.
             </p>
@@ -150,7 +153,7 @@ function Pandals() {
                <span className="muted">
                  {[p.locality_name, p.city_name].filter(Boolean).join(", ") || "—"}
                </span>,
-               <a href={`http://${p.slug}.localhost:3000`} target="_blank" rel="noreferrer">
+               <a href={pandalHref(p.slug)} target="_blank" rel="noreferrer">
                  <code style={{ fontSize: 11 }}>{p.slug}</code>
                </a>,
                <Pill value={p.accepts_donations ? "active" : "off"} />,

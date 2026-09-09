@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { api, list, rupees, type Me } from "@/lib/admin";
 
+import { donationLinkUrl, pandalDisplayHost, pandalHref } from "@/lib/urls";
+
 import { CopyButton, Field, Form, Panel, Pill, Select, Table, Tile, useLoad } from "./ui";
 
 type Pandal = Me["pandals"][number];
@@ -118,7 +120,7 @@ function Links({ pandal }: P) {
                  <code style={{ fontSize: 13 }}>/d/{l.token}</code>,
                  <span className="num">{l.donation_count}</span>,
                  <Pill value={l.is_active ? "active" : "off"} />,
-                 <CopyButton text={`https://${pandal.slug}.edurgapuja.app/d/${l.token}`} />,
+                 <CopyButton text={donationLinkUrl(pandal.slug, l.token)} />,
                ])}
                empty="No links yet." />
       </Panel>
@@ -767,10 +769,10 @@ function PageContent({ pandal }: P) {
   return (
     <>
       <Panel title="Your page"
-             note={`Everything a visitor reads at ${pandal.slug}.edurgapuja.app. Changes are live as soon as you save.`}
+             note={`Everything a visitor reads at ${pandalDisplayHost(pandal.slug)}. Changes are live as soon as you save.`}
              actions={
                <a className="abtn abtn-quiet" target="_blank" rel="noreferrer"
-                  href={`http://${pandal.slug}.localhost:3000`}>Open my page ↗</a>
+                  href={pandalHref(pandal.slug)}>Open my page ↗</a>
              }>
         <div className="panel-body">
           <p className="hint">
@@ -1040,7 +1042,7 @@ function Details({ pandal }: P) {
             {field("seo_title", "Title in search results")}
             {field("seo_description", "Description in search results")}
             <p className="hint">
-              Your address is <code>{row.slug}.edurgapuja.app</code>. It cannot be changed
+              Your address is <code>{pandalDisplayHost(row.slug)}</code>. It cannot be changed
               here — people have already been given it. Ask us for a rename and the old one
               keeps working.
             </p>

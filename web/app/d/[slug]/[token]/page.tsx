@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { LinkDonate } from "@/components/LinkDonate";
 import { getPandalPage, resolveDonationLink, rupees } from "@/lib/api";
+import { pandalHref } from "@/lib/urls";
 
 type Params = { params: Promise<{ slug: string; token: string }> };
 
@@ -63,7 +64,7 @@ export default async function DonationLinkPage({ params }: Params) {
             It may have been closed by the committee, or the address may have a typo in it.
             You can still give to {page.pandal.name} directly.
           </p>
-          <a className="btn btn-solid" href={`http://${page.pandal.slug}.localhost:3000/#donate`}>
+          <a className="btn btn-solid" href={`${pandalHref(page.pandal.slug)}#donate`}>
             Donate to {page.pandal.name}
           </a>
         </main>
@@ -91,7 +92,7 @@ export default async function DonationLinkPage({ params }: Params) {
         <LinkDonate page={page} link={link} />
 
         <p className="link-foot">
-          <a href={`http://${page.pandal.slug}.localhost:3000`}>
+          <a href={pandalHref(page.pandal.slug)}>
             See everything about {page.pandal.name} →
           </a>
         </p>

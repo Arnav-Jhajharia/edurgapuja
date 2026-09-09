@@ -2,17 +2,9 @@ import type { Metadata } from "next";
 import { permanentRedirect } from "next/navigation";
 import { headers } from "next/headers";
 
-import { About } from "@/components/blocks/About";
-import { ClosingCta } from "@/components/blocks/ClosingCta";
-import { Donate } from "@/components/blocks/Donate";
-import { Hero } from "@/components/blocks/Hero";
-import { Marquee } from "@/components/blocks/Marquee";
-import { Passes } from "@/components/blocks/Passes";
-import { Services } from "@/components/blocks/Services";
-import { SiteFooter } from "@/components/blocks/SiteFooter";
-import { SiteHeader } from "@/components/blocks/SiteHeader";
-import { Visit } from "@/components/blocks/Visit";
+import { PandalSite } from "@/components/PandalSite";
 import { getPandalPage, listPandals, resolveHost, type PandalPage } from "@/lib/api";
+import { pandalDisplayHost, pandalHref, ROUTING } from "@/lib/urls";
 import { slugFromHost } from "@/lib/host";
 
 async function resolve(): Promise<PandalPage | null> {
@@ -54,35 +46,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Page() {
   const page = await resolve();
   if (!page) return <Index />;
-
-  // The pandal's own palette, not a platform skin (FR-050b).
-  const brand = page.brand;
-  const theme = brand
-    ? ({
-        "--primary": brand.primary_colour,
-        "--accent": brand.accent_colour,
-        "--surface": brand.surface_colour,
-        "--ink": brand.ink_colour,
-      } as React.CSSProperties)
-    : undefined;
-
-  return (
-    <div style={theme}>
-      <SiteHeader page={page} />
-      <Hero page={page} />
-      <Marquee page={page} />
-      <About page={page} />
-      <Services page={page} />
-      <Passes page={page} />
-      <Donate page={page} />
-      <Visit page={page} />
-      <ClosingCta page={page} />
-      <SiteFooter page={page} />
-    </div>
-  );
+  return <PandalSite page={page} />;
 }
 
-/** Shown on a bare host in development, where there is no subdomain to read. */
+/** The directory, shown on a bare host where no pandal is named. */
 async function Index() {
   const pandals = await listPandals();
   return (
@@ -90,16 +57,18 @@ async function Index() {
       <p className="eyebrow">eDurgaPuja</p>
       <h1 className="display">Every pandal, its own site.</h1>
       <p style={{ maxWidth: "52ch", opacity: 0.75 }}>
-        Each committee is served on its own subdomain. In development those are{" "}
-        <code>&lt;slug&gt;.localhost:3000</code>, which Chrome resolves with no hosts-file
-        editing.
+        {ROUTING === "subdomain"
+          ? "Each committee is served on its own subdomain."
+          : "Each committee has its own page."}
       </p>
       <ul>
         {pandals.map((pandal) => (
           <li key={pandal.slug}>
-            <a href={`http://${pandal.slug}.localhost:3000`}>
+            {/* From lib/urls, so this link is correct in either mode and on
+                any host — including a laptop, where it used to be hardcoded. */}
+            <a href={pandalHref(pandal.slug)}>
               <span>{pandal.name}</span>
-              <code>{pandal.slug}.localhost:3000</code>
+              <code>{pandalDisplayHost(pandal.slug)}</code>
             </a>
           </li>
         ))}

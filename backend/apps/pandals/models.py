@@ -76,6 +76,20 @@ class Pandal(BaseModel):
 
     @property
     def canonical_url(self) -> str:
+        """Where this pandal's page actually lives.
+
+        A subdomain each is the intended shape, and it needs a wildcard
+        certificate. Where that is not available the same pages are served from
+        a path instead, and the canonical link has to say so — pointing search
+        engines and social cards at an address that does not resolve is worse
+        than the uglier URL.
+
+        A committee that has brought its own domain always wins, either way.
+        """
+        if self.custom_domain:
+            return f"https://{self.custom_domain}"
+        if settings.PANDAL_ROUTING == "path":
+            return f"https://{settings.SITE_DOMAIN}/p/{self.slug}"
         return f"https://{self.canonical_host}"
 
 
