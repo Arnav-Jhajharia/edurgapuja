@@ -562,6 +562,32 @@ def test_nobody_can_remove_their_own_access(api, pandal_admin, pandal):
     assert pandal_admin.memberships.filter(pk=mine.pk).exists()
 
 
+def test_a_fresh_deployment_has_somewhere_to_put_a_pandal(db):
+    """An empty city table means the onboarding form has nothing to choose
+    from, so a new deployment cannot onboard anybody at all."""
+    from django.core.management import call_command
+
+    from apps.geo.models import City, Locality
+
+    call_command("seed_geo")
+
+    assert City.objects.filter(name="Kolkata").exists()
+    assert Locality.objects.filter(city__name="Kolkata", name="Ballygunge").exists()
+
+
+def test_seeding_places_twice_adds_nothing(db):
+    """It runs on every deploy."""
+    from django.core.management import call_command
+
+    from apps.geo.models import Locality
+
+    call_command("seed_geo")
+    before = Locality.objects.count()
+    call_command("seed_geo")
+
+    assert Locality.objects.count() == before
+
+
 def test_cities_and_localities_are_offered_as_a_picker(api, super_admin, city, locality):
     """Onboarding should not be a request to go and find two UUIDs."""
     api.force_authenticate(super_admin)
