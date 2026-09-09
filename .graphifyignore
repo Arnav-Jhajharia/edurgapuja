@@ -1,0 +1,10 @@
+# Paths kept out of the knowledge graph.
+# Build output: minified bundles dominate clustering and produce god nodes
+# like e()/u()/i() that are webpack internals, not this project's abstractions.
+web/.next-build/
+web/.next/
+
+# A superseded cut of the same product. Its ADRs contradict the current
+# design (ADR-002 vs CLAUDE.md), so indexing it pollutes queries about
+# how the system works today.
+legacy/

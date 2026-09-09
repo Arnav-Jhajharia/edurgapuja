@@ -1,0 +1,48 @@
+[project]
+name = "edurgapuja-backend"
+version = "0.1.0"
+description = "eDurgaPuja — pandal landing pages, donations and value-added services"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "django>=5.2,<6.0",
+    "djangorestframework>=3.15",
+    "djangorestframework-simplejwt>=5.3",
+    "psycopg[binary]>=3.2",
+    "django-environ>=0.11",
+    "django-filter>=24.3",
+    "drf-spectacular>=0.27",
+    "celery[redis]>=5.4",
+    "redis>=5.0",
+    "argon2-cffi>=23.1",
+    "sentry-sdk[django]>=2.14",
+    "phonenumbers>=8.13",
+    "pillow>=11.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+    "pytest-cov>=5.0",
+    "factory-boy>=3.3",
+    "hypothesis>=6.112",
+    "ruff>=0.6",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "C4", "DJ", "DTZ", "S", "RUF"]
+ignore = ["S101", "RUF012", "RUF001", "RUF002"]  # prose and display strings use × and – deliberately
+
+[tool.ruff.lint.per-file-ignores]
+"**/migrations/*" = ["E501", "N806", "I001", "RUF012"]
+"tests/*" = ["S105", "S106", "S311"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+addopts = "-q --reuse-db"
+testpaths = ["tests"]

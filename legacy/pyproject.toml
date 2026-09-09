@@ -1,0 +1,24 @@
+[project]
+name = "pujapass"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Arnav Jhajharia", email = "jhajhariaarnav@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "celery>=5.6.3",
+    "django>=6.1.1",
+    "djangorestframework>=3.18.0",
+    "djangorestframework-simplejwt>=5.5.1",
+    "drf-spectacular>=0.30.0",
+    "psycopg[binary]>=3.3.5",
+]
+
+[project.scripts]
+pujapass = "pujapass:main"
+
+[build-system]
+requires = ["uv_build>=0.12.7,<0.13.0"]
+build-backend = "uv_build"
