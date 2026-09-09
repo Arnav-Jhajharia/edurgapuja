@@ -48,6 +48,16 @@ const SCREENS: Record<string, Group[]> = {
                                           ["entryLog", "Entry & QR log"],
                                           ["live", "Live status"],
                                           ["support", "Support & feedback"]] },
+    // A platform operator onboarding a committee needs to be able to set their
+    // page up with them. The API already allowed this — only the nav did not
+    // offer it, which is the kind of gap that ends in someone asking for the
+    // committee's login.
+    { group: "Their website", items: [["details", "Committee & details"],
+                                      ["appearance", "Colours"],
+                                      ["page", "Page text"],
+                                      ["visitFacts", "Plan your visit"],
+                                      ["passSetup", "What they sell"],
+                                      ["staff", "Who can sign in"]] },
   ],
 };
 
