@@ -1,5 +1,6 @@
 """Issue and verify one-time codes, with the limits the contract promises."""
 
+import logging
 import secrets
 from dataclasses import dataclass
 from datetime import timedelta
@@ -12,7 +13,10 @@ from django.utils.module_loading import import_string
 from rest_framework import status
 
 from apps.accounts.models import OtpChallenge
+from apps.accounts.otp.senders import OtpDeliveryError
 from apps.common.errors import DomainError
+
+logger = logging.getLogger(__name__)
 
 
 class OtpRateLimitedError(DomainError):
@@ -29,6 +33,18 @@ class OtpInvalidError(DomainError):
 class OtpExpiredError(DomainError):
     default_code = "otp_expired"
     default_detail = "That code has expired. Request a new one."
+
+
+class OtpUndeliverableError(DomainError):
+    """The network would not take the message.
+
+    A separate code from a rate limit or a wrong code, because the person did
+    nothing wrong and retrying immediately is the right advice.
+    """
+
+    status_code = status.HTTP_502_BAD_GATEWAY
+    default_code = "otp_undeliverable"
+    default_detail = "We could not send a code just now. Please try again."
 
 
 @dataclass(frozen=True)
@@ -74,7 +90,15 @@ def issue(destination: str, *, purpose: str = OtpChallenge.Purpose.LOGIN,
         request_ip=ip,
     )
 
-    _sender().send(destination, code, channel=channel)
+    try:
+        _sender().send(destination, code, channel=channel)
+    except OtpDeliveryError as problem:
+        # Nobody received this, so it must not sit there as a live code — and
+        # the failure must not spend the person's cooldown or hourly quota,
+        # which are there to limit *them*, not to punish an outage.
+        OtpChallenge.objects.filter(pk=challenge.pk).update(consumed_at=timezone.now())
+        logger.error("OTP delivery failed for ***%s: %s", destination[-4:], problem)
+        raise OtpUndeliverableError from problem
 
     cache.set(_cooldown_key(destination), 1, timeout=settings.OTP_RESEND_COOLDOWN_SECONDS)
     try:

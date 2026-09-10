@@ -20,3 +20,4 @@ graphify-out/
 *.mov
 .env.local
 .env*.local
+.next-preview/

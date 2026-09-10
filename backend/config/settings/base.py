@@ -9,9 +9,16 @@ from pathlib import Path
 import environ
 
 BASE_DIR = Path(__file__).resolve().parents[2]
+REPO_ROOT = BASE_DIR.parent
 
 env = environ.Env(DEBUG=(bool, False), ALLOWED_HOSTS=(list, []))
+
+# Both files are read, backend first so it wins: `backend/.env` is this service's
+# own configuration, and the repo root holds settings shared with the web app.
+# read_env never overwrites what is already in the environment, so the order is
+# the precedence.
 environ.Env.read_env(BASE_DIR / ".env")
+environ.Env.read_env(REPO_ROOT / ".env")
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-dev-key-do-not-use-in-prod")
 DEBUG = env("DEBUG")
@@ -99,7 +106,25 @@ OTP_TTL_SECONDS = env.int("OTP_TTL_SECONDS", default=300)
 OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
 OTP_RESEND_COOLDOWN_SECONDS = env.int("OTP_RESEND_COOLDOWN_SECONDS", default=60)
 OTP_MAX_SENDS_PER_HOUR = env.int("OTP_MAX_SENDS_PER_HOUR", default=8)
-OTP_SENDER_BACKEND = env("OTP_SENDER_BACKEND", default="apps.accounts.otp.senders.ConsoleSender")
+# ConsoleSender logs the code instead of spending an SMS credit. The MSG91
+# sender takes over automatically once its credentials exist — see
+# `apps/accounts/otp/senders.py`.
+OTP_SENDER_BACKEND = env("OTP_SENDER_BACKEND",
+                         default="apps.accounts.otp.senders.default_sender")
+
+# MSG91 delivers the message; the code itself is generated, hashed and verified
+# here, so this is a transport and nothing more.
+MSG91_TEMPLATE_ID = env("MSG91_TEMPLATE_ID", default="")
+MSG_91_AUTH_KEY = env("MSG_91_AUTH_KEY", default="")
+# MSG91 calls the six-character DLT header both "sender" and "sender ID".
+# Either variable works; SENDER wins if both are set.
+MSG_91_SENDER = env("MSG_91_SENDER", default="")
+MSG_91_SENDER_ID = env("MSG_91_SENDER_ID", default="")
+# The variable name inside the DLT-approved template that carries the code.
+# MSG91's own OTP templates conventionally use ##OTP##.
+MSG91_CODE_VARIABLE = env("MSG91_CODE_VARIABLE", default="OTP")
+MSG91_BASE_URL = env("MSG91_BASE_URL", default="https://control.msg91.com/api/v5")
+MSG91_DEFAULT_COUNTRY_CODE = env("MSG91_DEFAULT_COUNTRY_CODE", default="91")
 DEFAULT_PHONE_REGION = "IN"
 
 # --- Inventory ---
