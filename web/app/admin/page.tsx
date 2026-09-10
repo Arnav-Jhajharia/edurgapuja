@@ -13,23 +13,39 @@ import "./admin.css";
 type Group = { group: string; items: [string, string][] };
 
 /** Which screens each panel offers. The role decides; the server enforces. */
+/**
+ * What a pandal admin runs. A Super Admin gets all of it, so this is defined
+ * once and reused rather than copied — the copy had already drifted, missing
+ * six screens a platform operator could reach through the API but not the nav.
+ */
+const PANDAL_GROUPS: Group[] = [
+  { group: "Money", items: [["revenue", "Donations"], ["links", "Donation links"],
+                            ["offerings", "Donation presets"]] },
+  { group: "Visitors", items: [["services", "Services"], ["bookings", "Service bookings"],
+                               ["live", "Live status"], ["support", "Support & feedback"]] },
+  { group: "Passes", items: [["passSetup", "What you sell"], ["passSales", "Passes & payments"],
+                             ["entryLog", "Entry & QR log"]] },
+  { group: "Sponsorship", items: [["packages", "Sponsorship packages"],
+                                  ["sponsors", "Sponsors"]] },
+  { group: "People", items: [["volunteers", "Volunteers & gates"],
+                             ["staff", "Who can sign in"]] },
+  { group: "Website", items: [["details", "Committee & details"],
+                              ["appearance", "Colours"],
+                              ["page", "Page text"],
+                              ["visitFacts", "Plan your visit"]] },
+];
+
+/** The same screens, worded for somebody operating on a committee's behalf. */
+const forSuperAdmin = (groups: Group[]): Group[] =>
+  groups.map((group) => ({
+    group: group.group === "Website" ? "Their website" : group.group,
+    items: group.items.map(([key, label]) =>
+      [key, label === "What you sell" ? "What they sell" : label] as [string, string]),
+  }));
+
 const SCREENS: Record<string, Group[]> = {
-  pandal_admin: [
-    { group: "Money", items: [["revenue", "Donations"], ["links", "Donation links"],
-                              ["offerings", "Donation presets"]] },
-    { group: "Visitors", items: [["services", "Services"], ["bookings", "Service bookings"],
-                                 ["live", "Live status"], ["support", "Support & feedback"]] },
-    { group: "Passes", items: [["passSetup", "What you sell"], ["passSales", "Passes & payments"],
-                               ["entryLog", "Entry & QR log"]] },
-    { group: "Sponsorship", items: [["packages", "Sponsorship packages"],
-                                    ["sponsors", "Sponsors"]] },
-    { group: "People", items: [["volunteers", "Volunteers & gates"],
-                               ["staff", "Who can sign in"]] },
-    { group: "My website", items: [["details", "Committee & details"],
-                                   ["appearance", "Colours"],
-                                   ["page", "Page text"],
-                                   ["visitFacts", "Plan your visit"]] },
-  ],
+  pandal_admin: PANDAL_GROUPS.map((g) =>
+    g.group === "Website" ? { ...g, group: "My website" } : g),
   sponsor_admin: [
     { group: "Sponsorship", items: [["overview", "Overview"], ["passes", "Pass management"],
                                     ["sub-sponsors", "Sub-sponsors"], ["branding", "Branding"]] },
@@ -38,33 +54,23 @@ const SCREENS: Record<string, Group[]> = {
     { group: "Sponsorship", items: [["overview", "Overview"], ["passes", "Pass management"],
                                     ["branding", "Branding"]] },
   ],
+  // A Super Admin outranks a pandal admin, so they can do everything a pandal
+  // admin can — plus the platform's own screens. Every queryset behind these
+  // already returns everything for a super admin; only the nav withheld them.
   super_admin: [
     { group: "Platform", items: [["dashboard", "Dashboard"], ["pandals", "Pandals"],
                                  ["sponsors-pools", "Sponsor pools"],
                                  ["creatives", "Branding review"],
                                  ["users", "People"]] },
-    { group: "Pandal operations", items: [["revenue", "Donations"], ["services", "Services"],
-                                          ["passSales", "Passes & payments"],
-                                          ["entryLog", "Entry & QR log"],
-                                          ["live", "Live status"],
-                                          ["support", "Support & feedback"]] },
-    // A platform operator onboarding a committee needs to be able to set their
-    // page up with them. The API already allowed this — only the nav did not
-    // offer it, which is the kind of gap that ends in someone asking for the
-    // committee's login.
-    { group: "Their website", items: [["details", "Committee & details"],
-                                      ["appearance", "Colours"],
-                                      ["page", "Page text"],
-                                      ["visitFacts", "Plan your visit"],
-                                      ["passSetup", "What they sell"],
-                                      ["staff", "Who can sign in"]] },
+    ...forSuperAdmin(PANDAL_GROUPS),
   ],
 };
 
-const PANDAL_SCREENS = new Set(["revenue", "links", "offerings", "services", "bookings",
-                                "volunteers", "packages", "sponsors", "live", "support", "page",
-                                "passSetup", "passSales", "entryLog",
-                                "appearance", "details", "visitFacts", "staff"]);
+
+/** Every screen PandalPanel renders, taken from the nav so the two cannot
+    disagree — a key present in one and absent from the other silently falls
+    back to the Donations screen. */
+const PANDAL_SCREENS = new Set(PANDAL_GROUPS.flatMap((g) => g.items.map(([key]) => key)));
 const SUPER_SCREENS = new Set(["dashboard", "pandals", "sponsors-pools", "creatives",
                                "users"]);
 

@@ -902,6 +902,9 @@ const SWATCHES: [string, string, string][] = [
 ];
 
 const PALETTES: [string, Record<string, string>][] = [
+  // The platform's own, first: a committee with no opinion should land on brand.
+  ["eDurgaPuja", { primary_colour: "#7B0D1E", accent_colour: "#D4AF37",
+                   surface_colour: "#FAF6EE", ink_colour: "#241A18" }],
   ["Terracotta", { primary_colour: "#B45F1E", accent_colour: "#E0A66A",
                    surface_colour: "#FBF3E8", ink_colour: "#3A1D0C" }],
   ["Alta red", { primary_colour: "#9A2B23", accent_colour: "#E8A87C",

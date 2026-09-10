@@ -46,12 +46,18 @@ export function Table({ columns, rows, empty }: {
   );
 }
 
+/** Status → pill tone. The six tones are the guide's; everything the API can
+    return maps onto one of them. */
 const TONE: Record<string, string> = {
   received: "ok", confirmed: "ok", approved: "ok", accepted: "ok", published: "ok",
-  resolved: "ok", found: "ok", active: "ok", completed: "ok",
+  resolved: "ok", found: "ok", active: "ok", completed: "ok", admitted: "ok",
   pending: "wait", pending_review: "wait", held: "wait", new: "wait", lost: "wait",
-  open: "wait", draft: "off", off: "off",
+  open: "wait", manual_override: "wait",
+  upcoming: "upcoming", scheduled: "upcoming",
+  visited: "visited", used: "visited",
+  draft: "off", off: "off", inactive: "off",
   rejected: "bad", failed: "bad", expired: "bad", declined: "bad", cancelled: "bad",
+  duplicate: "bad", invalid: "bad", sold_out: "bad",
 };
 
 /** A status chip. `label` overrides the text when the value is only the tone —

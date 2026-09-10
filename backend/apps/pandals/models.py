@@ -114,10 +114,14 @@ class PandalBrand(BaseModel):
     """A pandal page is that committee's brand, not a platform skin (FR-050b)."""
 
     pandal = models.OneToOneField(Pandal, on_delete=models.CASCADE, related_name="brand")
-    primary_colour = models.CharField(max_length=9, default="#B45F1E")
-    accent_colour = models.CharField(max_length=9, default="#E0A66A")
-    surface_colour = models.CharField(max_length=9, default="#FBF3E8")
-    ink_colour = models.CharField(max_length=9, default="#3A1D0C")
+
+    # eDurgaPuja's own palette is where a committee starts, not where it stays:
+    # deep maroon, antique gold used sparingly, warm cream, and near-black text.
+    # Every one of these is theirs to change on their Colours screen.
+    primary_colour = models.CharField(max_length=9, default="#7B0D1E")
+    accent_colour = models.CharField(max_length=9, default="#D4AF37")
+    surface_colour = models.CharField(max_length=9, default="#FAF6EE")
+    ink_colour = models.CharField(max_length=9, default="#241A18")
     display_font = models.CharField(max_length=80, blank=True)
     body_font = models.CharField(max_length=80, blank=True)
     logo = models.ImageField(upload_to="pandals/logo/", null=True, blank=True)

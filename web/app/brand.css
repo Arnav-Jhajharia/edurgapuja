@@ -1,0 +1,50 @@
+/**
+ * eDurgaPuja's own brand.
+ *
+ * One place, because these values appear on the admin console, the platform's
+ * directory page and every fallback surface — and a palette written out in four
+ * files is a palette that drifts. A committee's *own* colours override these on
+ * their page; this is the platform speaking, not them.
+ *
+ * From the brand guide: Deep Maroon leads, Antique Gold is used sparingly, and
+ * everything sits on warm cream rather than white.
+ */
+
+:root {
+  /* 3. Colour palette */
+  --edp-maroon: #7B0D1E;   /* primary brand */
+  --edp-maroon-deep: #5E0A17;
+  --edp-maroon-soft: #FBEFF0;
+  --edp-gold: #D4AF37;     /* accent — sparingly */
+  --edp-gold-soft: #FBF3DC;
+  --edp-cream: #FAF6EE;    /* background */
+  --edp-white: #FFFFFF;    /* surfaces */
+  --edp-ink: #241A18;      /* primary text */
+  --edp-muted: #6F625E;    /* secondary text */
+  --edp-line: #EAE0D2;
+
+  /* Status pills */
+  --edp-live: #1F7A4D;
+  --edp-live-bg: #E6F3EC;
+  --edp-upcoming: #6B4EA8;
+  --edp-upcoming-bg: #F0EAFA;
+  --edp-visited: #1F6FA8;
+  --edp-visited-bg: #E6F1FA;
+  --edp-pending: #8A5A12;
+  --edp-pending-bg: #FBF1DC;
+  --edp-soldout: #A8281F;
+  --edp-soldout-bg: #FBE7E5;
+  --edp-cancelled: #6F625E;
+  --edp-cancelled-bg: #F0ECEA;
+
+  /* 9. Shape language */
+  --edp-r-card: 22px;
+  --edp-r-input: 18px;
+  --edp-r-button: 18px;
+
+  /* 11. Layout & spacing */
+  --edp-gap-section: 24px;
+  --edp-gap-card: 20px;
+  --edp-gap-component: 16px;
+  --edp-button-height: 56px;
+}

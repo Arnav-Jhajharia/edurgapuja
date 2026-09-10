@@ -1,5 +1,60 @@
-@import "../brand.css";
+/*!*******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/.pnpm/next@15.5.25_react-dom@19.1.1_react@19.1.1__react@19.1.1/node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!./node_modules/.pnpm/next@15.5.25_react-dom@19.1.1_react@19.1.1__react@19.1.1/node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/brand.css ***!
+  \*******************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
+/**
+ * eDurgaPuja's own brand.
+ *
+ * One place, because these values appear on the admin console, the platform's
+ * directory page and every fallback surface — and a palette written out in four
+ * files is a palette that drifts. A committee's *own* colours override these on
+ * their page; this is the platform speaking, not them.
+ *
+ * From the brand guide: Deep Maroon leads, Antique Gold is used sparingly, and
+ * everything sits on warm cream rather than white.
+ */
 
+:root {
+  /* 3. Colour palette */
+  --edp-maroon: #7B0D1E;   /* primary brand */
+  --edp-maroon-deep: #5E0A17;
+  --edp-maroon-soft: #FBEFF0;
+  --edp-gold: #D4AF37;     /* accent — sparingly */
+  --edp-gold-soft: #FBF3DC;
+  --edp-cream: #FAF6EE;    /* background */
+  --edp-white: #FFFFFF;    /* surfaces */
+  --edp-ink: #241A18;      /* primary text */
+  --edp-muted: #6F625E;    /* secondary text */
+  --edp-line: #EAE0D2;
+
+  /* Status pills */
+  --edp-live: #1F7A4D;
+  --edp-live-bg: #E6F3EC;
+  --edp-upcoming: #6B4EA8;
+  --edp-upcoming-bg: #F0EAFA;
+  --edp-visited: #1F6FA8;
+  --edp-visited-bg: #E6F1FA;
+  --edp-pending: #8A5A12;
+  --edp-pending-bg: #FBF1DC;
+  --edp-soldout: #A8281F;
+  --edp-soldout-bg: #FBE7E5;
+  --edp-cancelled: #6F625E;
+  --edp-cancelled-bg: #F0ECEA;
+
+  /* 9. Shape language */
+  --edp-r-card: 22px;
+  --edp-r-input: 18px;
+  --edp-r-button: 18px;
+
+  /* 11. Layout & spacing */
+  --edp-gap-section: 24px;
+  --edp-gap-card: 20px;
+  --edp-gap-component: 16px;
+  --edp-button-height: 56px;
+}
+
+/*!*************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/.pnpm/next@15.5.25_react-dom@19.1.1_react@19.1.1__react@19.1.1/node_modules/next/dist/build/webpack/loaders/css-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[2]!./node_modules/.pnpm/next@15.5.25_react-dom@19.1.1_react@19.1.1__react@19.1.1/node_modules/next/dist/build/webpack/loaders/postcss-loader/src/index.js??ruleSet[1].rules[14].oneOf[10].use[3]!./app/admin/admin.css ***!
+  \*************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************************/
 /* The console wears eDurgaPuja's own brand rather than any committee's — it is
    the platform speaking. Mapped onto the existing token names so every rule
    below keeps working and the palette lives in exactly one file.
@@ -32,7 +87,7 @@
 .admin-nav { padding:16px 14px; }
 /* Groups are wrapped in a div, so the grid has to be on the wrapper too —
    otherwise `all:unset` leaves the buttons inline and they flow side by side. */
-.admin-nav > div { display:grid; gap:3px; }
+.admin-nav > div { display:grid; grid-gap:3px; gap:3px; }
 .admin-nav button { all:unset; cursor:pointer; padding:11px 14px; border-radius:var(--edp-r-button);
   color:var(--a-mute); font-size:15px; }
 .admin-nav button:hover { background:var(--a-bg); color:var(--a-ink); }
@@ -51,7 +106,7 @@
   font-size:31px; margin:0; }
 .admin-head p { margin:5px 0 0; color:var(--a-mute); font-size:14.5px; }
 
-.tiles { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+.tiles { display:grid; grid-gap:14px; gap:14px; grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
   margin-bottom:24px; }
 .tile { background:var(--a-card); border:1px solid var(--a-line); border-radius:var(--edp-r-card); padding:20px 22px; }
 .tile span { font-family:var(--font-body), ui-sans-serif, system-ui, sans-serif; font-size:10.5px; letter-spacing:.12em;
@@ -73,7 +128,7 @@ th { text-align:left; font-family:var(--font-body), ui-sans-serif, system-ui, sa
   padding:12px 22px; background:#fbf8f6; border-bottom:1px solid var(--a-line); }
 td { padding:15px 22px; border-bottom:1px solid #f2eeeb; font-size:15px; vertical-align:middle; }
 tr:last-child td { border-bottom:none; }
-.num { font-variant-numeric:tabular-nums; }
+.num { font-feature-settings:"tnum"; font-variant-numeric:tabular-nums; }
 
 .pill { display:inline-block; padding:3.5px 11px; border-radius:999px; font-size:12px;
   font-weight:600; }
@@ -95,8 +150,8 @@ tr:last-child td { border-bottom:none; }
 .abtn[disabled] { opacity:.45; cursor:not-allowed; }
 .abtn-quiet { background:transparent; color:var(--a-accent); border:1px solid var(--a-line); }
 
-.form { display:grid; gap:14px; max-width:520px; }
-.form label { display:grid; gap:5px; }
+.form { display:grid; grid-gap:14px; gap:14px; max-width:520px; }
+.form label { display:grid; grid-gap:5px; gap:5px; }
 .form label span { font-family:var(--font-body), ui-sans-serif, system-ui, sans-serif; font-size:10.5px;
   letter-spacing:.1em; text-transform:uppercase; color:var(--a-mute); }
 .form input, .form select, .form textarea { padding:13px 15px; border:1px solid var(--a-line);
@@ -116,7 +171,7 @@ tr:last-child td { border-bottom:none; }
 
 /* Two short forms that belong to the same row action, kept side by side so a
    sponsor can reprice and top up a sub-sponsor without scrolling between them. */
-.side-by-side { display:grid; gap:32px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+.side-by-side { display:grid; grid-gap:32px; gap:32px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
                 align-items:start; }
 
 .hint { margin:0; font-size:13.5px; color:var(--a-mute); line-height:1.5; }
@@ -138,12 +193,12 @@ tr:last-child td { border-bottom:none; }
 .form textarea { min-height:76px; resize:vertical; font:inherit; }
 .form small.hint { margin-top:2px; }
 
-.swatch-row { display:grid; gap:6px; }
+.swatch-row { display:grid; grid-gap:6px; gap:6px; }
 .swatch-controls { display:flex; gap:10px; align-items:center; }
 .swatch-controls input[type="color"] { width:52px; height:38px; padding:2px; cursor:pointer;
                                        border:1px solid var(--a-line); border-radius:var(--edp-r-button);
                                        background:#fff; }
-.swatch-hex { flex:1; font-family:var(--font-body), ui-sans-serif, system-ui, sans-serif; text-transform:uppercase; }
+.swatch-hex { flex:1 1; font-family:var(--font-body), ui-sans-serif, system-ui, sans-serif; text-transform:uppercase; }
 
 .palette-row { margin-top:26px; padding-top:22px; border-top:1px solid var(--a-line); }
 .palette { all:unset; cursor:pointer; display:inline-flex; align-items:center; gap:9px;
@@ -163,6 +218,7 @@ tr:last-child td { border-bottom:none; }
 .preview-btn { display:inline-block; padding:10px 20px; border-radius:999px; font-size:14px; }
 .preview-btn-ghost { background:transparent; border:1px solid; }
 
-.pillars-editor { display:grid; gap:10px; }
-.pillar-row { display:grid; grid-template-columns:1fr 1.6fr auto; gap:8px; align-items:center; }
+.pillars-editor { display:grid; grid-gap:10px; gap:10px; }
+.pillar-row { display:grid; grid-template-columns:1fr 1.6fr auto; grid-gap:8px; gap:8px; align-items:center; }
 .toggle-row { display:flex; padding:9px 0; font-size:15px; color:var(--a-ink); }
+
