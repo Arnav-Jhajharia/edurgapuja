@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Login } from "@/components/admin/Login";
+import { Lotus } from "@/components/admin/Lotus";
 import { PandalPanel } from "@/components/admin/PandalPanel";
 import { SponsorPanel } from "@/components/admin/SponsorPanel";
 import { SuperPanel } from "@/components/admin/SuperPanel";
@@ -109,8 +110,11 @@ export default function AdminPage() {
     <div className="admin">
       <aside className="admin-side">
         <div className="admin-brand">
-          <strong>eDurgaPuja</strong>
-          <span>{PANEL_FOR[role] ?? "Admin"}</span>
+          <span className="admin-mark"><Lotus /></span>
+          <div>
+            <strong>eDurgaPuja</strong>
+            <span>{PANEL_FOR[role] ?? "Admin"}</span>
+          </div>
         </div>
 
         <nav className="admin-nav">

@@ -37,6 +37,13 @@ class Command(BaseCommand):
         phone = normalise(phone)
 
         user, created = User.objects.get_or_create(phone=phone)
+        if created and not password:
+            # get_or_create bypasses create_user, which would have done this.
+            # An empty password hash is not the same as an unusable one: it
+            # reads as "has a password" to has_usable_password() and to anyone
+            # looking at the row.
+            user.set_unusable_password()
+            user.save(update_fields=["password", "updated_at"])
         if password:
             # Set every time on purpose: rotating the platform's first password
             # should be a variable change and a redeploy, not a shell session.

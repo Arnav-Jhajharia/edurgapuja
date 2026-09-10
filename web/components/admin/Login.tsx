@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { Lotus } from "@/components/admin/Lotus";
 import { api, ApiError, setToken } from "@/lib/admin";
 
 type Method = "otp" | "password";
@@ -58,6 +59,7 @@ export function Login({ onSignedIn }: { onSignedIn: () => void }) {
   return (
     <div className="login">
       <form className="login-card form" onSubmit={submit}>
+        <span className="login-mark"><Lotus /></span>
         <h1>eDurgaPuja</h1>
         <p className="sub">
           {method === "password"
