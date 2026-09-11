@@ -4,15 +4,28 @@
  * The console.
  *
  * It wears eDurgaPuja's own brand rather than any committee's — this is the
- * platform speaking, and a maroon rail makes that legible at a glance. A pandal's
- * page still wears the committee's colours; only this does not.
+ * platform speaking. A pandal's page still wears the committee's colours; only
+ * this does not.
  *
- * From the brand guide: maroon leads, gold appears sparingly and only to mark
- * what is current, everything sits on warm cream, and surfaces are white. Cards
- * are 22px, controls 18px, and the rhythm is 24 / 20 / 16.
+ * The rail used to be a solid maroon slab. It read as the loudest thing on
+ * every screen, which is backwards: the rail is furniture, the data is the
+ * point. So the brand now speaks through the wordmark and through maroon used
+ * where it means something — the current screen, the primary action, a total —
+ * and the rail itself is a white surface on the cream canvas, like the cards.
  *
- * Both the shell and the login card need the tokens: the login screen renders
- * outside .admin, so scoping them there alone left it unstyled.
+ * Two places where the console departs from the brand guide, both deliberate
+ * and both scoped to this file so the visitor-facing site is untouched:
+ *
+ *   Shape. The guide's 22 / 18 / 18 is drawn for a visitor page with a handful
+ *   of large elements. A console puts forty controls on a screen, and at that
+ *   density a 22px radius on a 34px-tall row reads as a lozenge. The console
+ *   uses 14 / 10 / 10 instead.
+ *
+ *   Type. The guide gives headings to DM Serif Display. That is right for a
+ *   pandal's page and wrong for a screen title you see two hundred times an
+ *   evening — the serif is doing decoration where the job is orientation. Here
+ *   the serif is kept for the wordmark and for the one hero number a screen is
+ *   allowed, and the interface itself is set in Poppins.
  */
 .admin, .login {
   --a-ink: var(--edp-ink);
@@ -21,13 +34,24 @@
   --a-bg: var(--edp-cream);
   --a-card: var(--edp-white);
   --a-accent: var(--edp-maroon);
+  --a-soft: var(--edp-maroon-soft);
   --a-gold: var(--edp-gold);
   --a-good: var(--edp-live);
   --a-warn: var(--edp-pending);
-  --a-shadow: 0 1px 2px rgba(36,26,24,.04), 0 8px 24px -16px rgba(36,26,24,.18);
+
+  /* The console's own shape scale — see the note above. */
+  --a-r-card: 14px;
+  --a-r-control: 10px;
+
+  /* A hairline of lift, not a drop shadow. Cards sit on the canvas; they do
+     not float above it. */
+  --a-shadow: 0 1px 2px rgba(36,26,24,.04);
+
+  --a-rail: 248px;
+  --a-gutter: 26px;
 }
 
-.admin { display:grid; grid-template-columns:264px 1fr; min-height:100vh;
+.admin { display:grid; grid-template-columns:var(--a-rail) 1fr; min-height:100vh;
   background:var(--a-bg); color:var(--a-ink);
   font-family:var(--font-body), ui-sans-serif, system-ui, sans-serif; font-size:15px; }
 
@@ -36,95 +60,159 @@
 /* Sticky and self-scrolling: a console has long screens, and a navigation you
    have to scroll back up to reach is a navigation you stop using. */
 .admin-side { position:sticky; top:0; align-self:start; height:100vh;
-  display:flex; flex-direction:column; overflow-y:auto; overscroll-behavior:contain;
-  background:var(--a-accent); color:#fff; padding:22px 0 18px; }
-.admin-side::-webkit-scrollbar { width:6px; }
-.admin-side::-webkit-scrollbar-thumb { background:rgba(255,255,255,.22); border-radius:3px; }
+  display:flex; flex-direction:column; overflow:hidden;
+  background:var(--a-card); border-right:1px solid var(--a-line); }
+.admin-side > .admin-nav { overflow-y:auto; overscroll-behavior:contain; }
+.admin-side::-webkit-scrollbar, .admin-nav::-webkit-scrollbar { width:6px; }
+.admin-nav::-webkit-scrollbar-thumb { background:var(--a-line); border-radius:3px; }
 
-.admin-brand { display:flex; align-items:center; gap:11px; padding:0 20px 20px;
-  border-bottom:1px solid rgba(255,255,255,.14); }
+.admin-brand { display:flex; align-items:center; gap:11px; flex:none;
+  padding:18px 18px 17px; border-bottom:1px solid var(--a-line); }
 /* 10. Bengali decorative elements — a lotus, used once, in the header only. */
-.admin-mark { width:38px; height:38px; flex:none; border-radius:11px;
-  background:rgba(255,255,255,.1); display:grid; place-items:center; color:var(--a-gold); }
-.admin-mark svg { width:22px; height:22px; }
-.admin-brand strong { display:block; font-family:var(--font-display), Georgia, serif;
-  font-weight:400; font-size:20px; letter-spacing:.2px; color:#fff; }
-.admin-brand span { display:block; font-size:10px; letter-spacing:.14em;
-  text-transform:uppercase; color:rgba(255,255,255,.62); margin-top:1px; }
+.admin-mark { width:36px; height:36px; flex:none; border-radius:11px;
+  background:var(--a-accent); display:grid; place-items:center; color:var(--a-gold); }
+.admin-mark svg { width:21px; height:21px; }
+/* Scoped to the text block, not to every span in the header: `.admin-brand span`
+   also matched the mark, and being the more specific rule it won — which is why
+   the lotus had been drawing in muted grey rather than gold, and as a block
+   rather than a centred grid. */
+.admin-brand > div strong { display:block; font-family:var(--font-display), Georgia, serif;
+  font-weight:400; font-size:19px; letter-spacing:.2px; color:var(--a-accent); }
+.admin-brand > div span { display:block; font-size:9.5px; letter-spacing:.15em;
+  text-transform:uppercase; color:var(--a-mute); margin-top:2px; }
 
-.admin-nav { padding:14px 12px; flex:1; }
-.admin-nav > div { display:grid; gap:2px; }
-.admin-nav button { all:unset; cursor:pointer; display:block; width:100%;
-  padding:9px 13px; border-radius:var(--edp-r-button); font-size:14px;
-  color:rgba(255,255,255,.78); transition:background .12s ease, color .12s ease; }
-.admin-nav button:hover { background:rgba(255,255,255,.09); color:#fff; }
-/* Gold marks what is current, and nothing else. That is the whole of its job. */
-.admin-nav button[aria-current="true"] { background:rgba(255,255,255,.13); color:#fff;
-  font-weight:500; box-shadow:inset 3px 0 0 var(--a-gold); }
-.admin-nav p { margin:18px 13px 6px; font-size:10px; letter-spacing:.15em;
-  text-transform:uppercase; color:rgba(255,255,255,.42); }
-.admin-nav > div:first-of-type + p, .admin-nav p:first-child { margin-top:4px; }
+.admin-nav { padding:12px 10px 18px; flex:1; }
+.admin-nav > div { display:grid; gap:1px; }
+.admin-nav > div + p { margin-top:16px; }
 
-.admin-foot { padding:16px 20px 0; border-top:1px solid rgba(255,255,255,.14);
-  font-size:13px; color:rgba(255,255,255,.72); }
-.admin-foot button { all:unset; cursor:pointer; color:var(--a-gold); font-size:13px;
-  margin-top:5px; display:block; }
+/* Icon, then label, on one baseline. The icon column is fixed so every label
+   starts at the same x — a ragged left edge is what makes an icon rail read as
+   busier than a plain one. */
+.admin-nav button { all:unset; cursor:pointer; box-sizing:border-box;
+  display:flex; align-items:center; gap:11px; width:100%;
+  padding:8px 11px; border-radius:var(--a-r-control); font-size:14px;
+  color:var(--a-ink); transition:background .12s ease, color .12s ease; }
+.admin-nav button svg { width:18px; height:18px; flex:none; color:var(--a-mute);
+  transition:color .12s ease; }
+.admin-nav button:hover { background:color-mix(in srgb, var(--a-soft) 55%, transparent); }
+.admin-nav button:hover svg { color:var(--a-ink); }
+/* One blush pill marks the current screen, and maroon carries through to the
+   icon and the label so the row reads as a unit rather than a highlight with
+   grey furniture inside it. */
+.admin-nav button[aria-current="true"] { background:var(--a-soft); color:var(--a-accent);
+  font-weight:500; }
+.admin-nav button[aria-current="true"] svg { color:var(--a-accent); }
+
+.admin-nav p { margin:4px 12px 6px; font-size:9.5px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--a-mute); font-weight:500; }
+
+/* The signed-in account, parked at the bottom where an account always is. */
+.admin-foot { flex:none; display:flex; align-items:center; gap:10px;
+  padding:12px 16px; border-top:1px solid var(--a-line); }
+.admin-foot > div { min-width:0; flex:1; }
+.admin-foot strong { display:block; font-size:13.5px; font-weight:500;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.admin-foot span { display:block; font-size:11.5px; color:var(--a-mute); }
+.admin-foot button { all:unset; cursor:pointer; flex:none; display:grid; place-items:center;
+  width:30px; height:30px; border-radius:8px; color:var(--a-mute); }
+.admin-foot button svg { width:17px; height:17px; }
+.admin-foot button:hover { background:var(--a-soft); color:var(--a-accent); }
+
+.avatar { flex:none; display:grid; place-items:center; width:31px; height:31px;
+  border-radius:50%; background:var(--a-accent); color:#fff;
+  font-size:11px; font-weight:600; letter-spacing:.04em; }
 
 /* -------------------------------------------------------------- the canvas */
 
-.admin-main { padding:0 34px 72px; min-width:0; }
+.admin-main { min-width:0; display:flex; flex-direction:column; }
 
-/* Sticky too, so the pandal switcher and the screen you are on stay in view
-   while a long table scrolls under them. */
-.admin-head { position:sticky; top:0; z-index:5;
-  display:flex; align-items:flex-end; justify-content:space-between; gap:20px;
-  padding:26px 0 18px; margin-bottom:var(--edp-gap-section);
-  background:linear-gradient(var(--a-bg) 78%, transparent);
-  border-bottom:1px solid var(--a-line); }
-.admin-head h1 { font-family:var(--font-display), Georgia, serif; font-weight:400;
-  font-size:31px; margin:0; letter-spacing:.2px; }
-.admin-head p { margin:4px 0 0; color:var(--a-mute); font-size:14px; }
-.admin-head select { padding:9px 13px; border:1px solid var(--a-line);
-  border-radius:var(--edp-r-input); background:#fff; font:inherit; font-size:14px; }
+/* The bar carries the screen's name and who you are, and nothing that scrolls.
+   It is a white surface so the rail and the bar read as one continuous frame
+   around the cream working area. */
+.admin-head { position:sticky; top:0; z-index:5; flex:none;
+  display:flex; align-items:center; justify-content:space-between; gap:20px;
+  padding:0 var(--a-gutter); min-height:60px;
+  background:var(--a-card); border-bottom:1px solid var(--a-line); }
+.admin-head h1 { font-size:20px; font-weight:600; margin:0; letter-spacing:-.01em; }
+.admin-head .head-right { display:flex; align-items:center; gap:12px; }
+.admin-head select { padding:7px 11px; border:1px solid var(--a-line);
+  border-radius:var(--a-r-control); background:#fff; font:inherit; font-size:13.5px;
+  color:var(--a-ink); max-width:230px; }
 
-.tiles { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  margin-bottom:var(--edp-gap-section); }
-.tile { background:var(--a-card); border:1px solid var(--a-line);
-  border-radius:var(--edp-r-card); padding:var(--edp-gap-card) 22px;
-  box-shadow:var(--a-shadow); }
-.tile span { font-size:10px; letter-spacing:.13em; text-transform:uppercase;
-  color:var(--a-mute); }
-.tile strong { display:block; font-family:var(--font-display), Georgia, serif;
-  font-weight:400; font-size:33px; margin-top:7px; line-height:1.1; }
+/* The context line lives on the canvas rather than in the bar — it changes with
+   the data, and the bar should not reflow when it does. */
+.admin-body { padding:18px var(--a-gutter) 64px; }
+.admin-context { margin:0 0 16px; font-size:13.5px; color:var(--a-mute); }
+
+/* Sibling screens that used to be five separate rail entries. The rail names
+   the subject; these name the view of it. */
+.subnav { display:flex; gap:4px; flex-wrap:wrap; margin:0 0 18px; }
+.subnav button { all:unset; cursor:pointer; padding:6px 13px; border-radius:999px;
+  font-size:13.5px; color:var(--a-mute); border:1px solid transparent;
+  transition:background .12s ease, color .12s ease, border-color .12s ease; }
+.subnav button:hover { color:var(--a-ink); background:#fff; border-color:var(--a-line); }
+.subnav button[aria-current="true"] { background:#fff; color:var(--a-accent);
+  border-color:color-mix(in srgb, var(--a-accent) 26%, transparent); font-weight:500; }
+
+/* Four to a row at most, and the last row spreads to fill rather than leaving a
+   gap where the fifth tile would be. auto-fit could not do the second part: it
+   sizes the columns from the container and then strands whatever is left over,
+   which is why a screen with two tiles used to show them huddled in the left
+   half, and one with six showed four and an orphan pair. */
+.tiles { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:20px; }
+/* A quarter of the row once the three 14px gaps are out, less a few pixels of
+   slack: at exactly a quarter the four tiles sum to the container to the pixel,
+   and sub-pixel rounding tips the fourth onto its own line. They grow back to
+   fill, so the slack never shows. */
+.tile { flex:1 1 calc((100% - 48px) / 4); min-width:180px;
+  background:var(--a-card); border:1px solid var(--a-line);
+  border-radius:var(--a-r-card); padding:15px 17px 16px; box-shadow:var(--a-shadow); }
+.tile span { display:block; font-size:9.5px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--a-mute); font-weight:500; }
+.tile strong { display:block; font-size:27px; font-weight:600; margin-top:6px;
+  line-height:1.15; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+/* The number alone says how much; this says whether that is good news. */
+.tile em { display:block; font-style:normal; font-size:11.5px; margin-top:6px;
+  color:var(--a-good); }
+.tile em[data-tone="mute"] { color:var(--a-mute); }
+.tile em[data-tone="warn"] { color:var(--a-warn); }
 
 /* 9. Shape language: a card with a subtle border and rounded corners. */
 .panel { background:var(--a-card); border:1px solid var(--a-line);
-  border-radius:var(--edp-r-card); margin-bottom:var(--edp-gap-section);
+  border-radius:var(--a-r-card); margin-bottom:18px;
   box-shadow:var(--a-shadow); overflow:hidden; }
+/* Flat, not a gradient. The gradient was doing the work a border already does,
+   and it made every panel head look faintly like a disabled control. */
 .panel-head { display:flex; align-items:center; justify-content:space-between; gap:16px;
-  padding:18px 22px; border-bottom:1px solid var(--a-line);
-  background:linear-gradient(var(--edp-cream) 0%, #fff 100%); }
-.panel-head h2 { font-size:16px; margin:0; font-weight:600; }
-.panel-head p { margin:3px 0 0; font-size:13.5px; color:var(--a-mute); max-width:78ch;
+  padding:15px 18px; }
+.panel-head + .panel-scroll, .panel-head + .empty { border-top:1px solid var(--a-line); }
+.panel-head h2 { font-size:15px; margin:0; font-weight:600; }
+.panel-head p { margin:3px 0 0; font-size:13px; color:var(--a-mute); max-width:78ch;
   line-height:1.5; }
-.panel-body { padding:22px; }
+.panel-body { padding:18px; }
+/* The head already sets the card's top inset; a second one stacks into a gap. */
+.panel-head + .panel-body { padding-top:0; }
+/* A form that follows a table inside the same card needs the rule between them. */
+.panel-scroll + .panel-body, .empty + .panel-body { border-top:1px solid var(--a-line); }
 
 /* ------------------------------------------------------------------ tables */
 
 .panel table { width:100%; border-collapse:collapse; }
-.panel th { text-align:left; font-size:10px; letter-spacing:.13em; text-transform:uppercase;
-  color:var(--a-mute); font-weight:500; padding:11px 22px; background:var(--edp-cream);
-  border-bottom:1px solid var(--a-line); }
-.panel td { padding:14px 22px; border-bottom:1px solid var(--a-line); font-size:14.5px;
+.panel th { text-align:left; font-size:9.5px; letter-spacing:.13em; text-transform:uppercase;
+  color:var(--a-mute); font-weight:500; padding:10px 18px; background:var(--a-bg);
+  border-bottom:1px solid var(--a-line); white-space:nowrap; }
+.panel td { padding:13px 18px; border-bottom:1px solid var(--a-line); font-size:14px;
   vertical-align:middle; }
 .panel tr:last-child td { border-bottom:0; }
-.panel tbody tr:hover { background:color-mix(in srgb, var(--edp-cream) 55%, #fff); }
+.panel tbody tr:hover { background:color-mix(in srgb, var(--a-bg) 55%, #fff); }
 .num { font-variant-numeric:tabular-nums; }
-code { font-size:12.5px; background:var(--edp-cream); padding:2px 6px;
+/* A wide table scrolls inside its own card rather than pushing the page sideways. */
+.panel-scroll { overflow-x:auto; }
+code { font-size:12.5px; background:var(--a-bg); padding:2px 6px;
   border-radius:6px; border:1px solid var(--a-line); }
 
 /* 8. Status pills, all six from the guide. */
-.pill { display:inline-block; padding:4px 11px; border-radius:999px; font-size:12px;
+.pill { display:inline-block; padding:3px 10px; border-radius:999px; font-size:11.5px;
   font-weight:500; white-space:nowrap; }
 .pill-ok { background:var(--edp-live-bg); color:var(--edp-live); }
 .pill-wait { background:var(--edp-pending-bg); color:var(--edp-pending); }
@@ -138,15 +226,16 @@ code { font-size:12.5px; background:var(--edp-cream); padding:2px 6px;
 /* 7. Primary is solid maroon; secondary is an outline. Sentence case, because
    the guide's buttons read "Continue" and shouting would undo that. */
 .abtn { all:unset; display:inline-flex; align-items:center; justify-content:center; gap:7px;
-  text-align:center; cursor:pointer; padding:10px 18px; border-radius:var(--edp-r-button);
-  font-size:14px; font-weight:500; background:var(--a-accent); color:#fff;
+  text-align:center; cursor:pointer; padding:9px 16px; border-radius:var(--a-r-control);
+  font-size:13.5px; font-weight:500; background:var(--a-accent); color:#fff;
   transition:filter .12s ease, transform .12s ease; }
+.abtn svg { width:16px; height:16px; }
 .abtn:hover { filter:brightness(1.08); }
 .abtn:active { transform:translateY(1px); }
 .abtn[disabled] { opacity:.42; cursor:not-allowed; filter:none; transform:none; }
-.abtn-quiet { background:transparent; color:var(--a-accent);
-  border:1px solid color-mix(in srgb, var(--a-accent) 28%, transparent); }
-.abtn-quiet:hover { background:var(--edp-maroon-soft); filter:none; }
+.abtn-quiet { background:#fff; color:var(--a-ink); border:1px solid var(--a-line); }
+.abtn-quiet:hover { background:var(--a-soft); border-color:color-mix(in srgb, var(--a-accent) 26%, transparent);
+  color:var(--a-accent); filter:none; }
 /* Premium, for the one action on a screen that matters most. Gold, sparingly. */
 .abtn-gold { background:var(--a-accent); color:#fff;
   box-shadow:inset 0 0 0 1px var(--a-gold); }
@@ -155,10 +244,10 @@ code { font-size:12.5px; background:var(--edp-cream); padding:2px 6px;
 
 .form { display:grid; gap:var(--edp-gap-component); max-width:560px; }
 .form label { display:grid; gap:6px; }
-.form label span { font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
-  color:var(--a-mute); }
-.form input, .form select, .form textarea { padding:13px 15px; border:1px solid var(--a-line);
-  border-radius:var(--edp-r-input); font:inherit; font-size:14.5px; background:#fff;
+.form label span { font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--a-mute); font-weight:500; }
+.form input, .form select, .form textarea { padding:10px 13px; border:1px solid var(--a-line);
+  border-radius:var(--a-r-control); font:inherit; font-size:14px; background:#fff;
   color:var(--a-ink); transition:border-color .12s ease, box-shadow .12s ease; }
 .form input:focus, .form select:focus, .form textarea:focus { outline:none;
   border-color:var(--a-accent);
@@ -168,14 +257,14 @@ code { font-size:12.5px; background:var(--edp-cream); padding:2px 6px;
 .form small.hint { margin-top:2px; }
 .row { display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
 
-.msg { font-size:14px; margin-top:4px; }
+.msg { font-size:13.5px; margin-top:4px; }
 .msg[data-tone="error"] { color:var(--edp-soldout); }
 .msg[data-tone="ok"] { color:var(--a-good); }
-.empty { padding:46px 22px; text-align:center; color:var(--a-mute); font-size:14.5px; }
-.hint { margin:0; font-size:13.5px; color:var(--a-mute); line-height:1.55; }
+.empty { padding:40px 18px; text-align:center; color:var(--a-mute); font-size:14px; }
+.hint { margin:0; font-size:13px; color:var(--a-mute); line-height:1.55; }
 .muted { color:var(--a-mute); }
-.field-label { font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
-  color:var(--a-mute); display:block; margin-bottom:7px; }
+.field-label { font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--a-mute); font-weight:500; display:block; margin-bottom:7px; }
 
 .inline-check { display:inline-flex; align-items:center; gap:8px; font-size:14px;
   color:var(--a-ink); cursor:pointer; }
@@ -191,26 +280,29 @@ code { font-size:12.5px; background:var(--edp-cream); padding:2px 6px;
 
 .login { display:grid; place-items:center; min-height:100vh; background:var(--a-bg); }
 .login-card { background:#fff; border:1px solid var(--a-line);
-  border-radius:var(--edp-r-card); padding:38px 36px; width:min(430px,92vw);
-  box-shadow:0 2px 4px rgba(36,26,24,.04), 0 26px 60px -30px rgba(36,26,24,.4); }
-.login-mark { width:46px; height:46px; border-radius:14px; background:var(--a-accent);
-  display:grid; place-items:center; color:var(--a-gold); margin-bottom:16px; }
-.login-mark svg { width:26px; height:26px; }
+  border-radius:var(--a-r-card); padding:32px 30px; width:min(420px,92vw);
+  box-shadow:0 1px 2px rgba(36,26,24,.04), 0 18px 44px -28px rgba(36,26,24,.34); }
+.login-head { display:flex; align-items:center; gap:11px; margin-bottom:22px; }
+.login-mark { width:40px; height:40px; flex:none; border-radius:12px; background:var(--a-accent);
+  display:grid; place-items:center; color:var(--a-gold); }
+.login-mark svg { width:23px; height:23px; }
 .login-card h1 { font-family:var(--font-display), Georgia, serif; font-weight:400;
-  font-size:27px; color:var(--a-accent); margin:0 0 4px; }
-.login-card p.sub { margin:0 0 20px; color:var(--a-mute); font-size:14.5px; }
-.link-btn { all:unset; cursor:pointer; text-align:center; font-size:13.5px;
+  font-size:23px; color:var(--a-accent); margin:0; line-height:1.1; }
+.login-card p.sub { margin:2px 0 0; color:var(--a-mute); font-size:10px;
+  letter-spacing:.15em; text-transform:uppercase; }
+.login-note { margin:0 0 4px; color:var(--a-mute); font-size:13.5px; }
+.link-btn { all:unset; cursor:pointer; text-align:center; font-size:13px;
   color:var(--a-accent); text-decoration:underline; text-underline-offset:3px; }
 .demo-note { background:var(--edp-gold-soft); border:1px solid color-mix(in srgb, var(--a-gold) 45%, #fff);
-  border-radius:var(--edp-r-input); padding:10px 13px; color:#7a5312; font-size:13px; }
+  border-radius:var(--a-r-control); padding:10px 13px; color:#7a5312; font-size:13px; }
 .demo-note code { background:rgba(0,0,0,.05); border:0; }
 
 /* -------------------------------------------------------- colours & preview */
 
 .swatch-row { display:grid; gap:7px; }
 .swatch-controls { display:flex; gap:10px; align-items:center; }
-.swatch-controls input[type="color"] { width:54px; height:44px; padding:3px; cursor:pointer;
-  border:1px solid var(--a-line); border-radius:var(--edp-r-input); background:#fff; }
+.swatch-controls input[type="color"] { width:52px; height:40px; padding:3px; cursor:pointer;
+  border:1px solid var(--a-line); border-radius:var(--a-r-control); background:#fff; }
 .swatch-hex { flex:1; text-transform:uppercase; }
 
 .palette-row { margin-top:26px; padding-top:22px; border-top:1px solid var(--a-line); }
@@ -222,6 +314,8 @@ code { font-size:12.5px; background:var(--edp-cream); padding:2px 6px;
 .palette-chips i { width:15px; height:15px; border-radius:50%; display:inline-block;
   border:1.5px solid #fff; margin-right:-6px; }
 
+/* The committee's page is not the console, so the preview keeps the brand
+   guide's own shape language — this is the one place that shows their site. */
 .brand-preview { border:1px solid; border-radius:var(--edp-r-card); padding:30px 32px; }
 .preview-eyebrow { font-size:11px; letter-spacing:.14em; text-transform:uppercase;
   margin:0 0 10px; }
@@ -234,11 +328,12 @@ code { font-size:12.5px; background:var(--edp-cream); padding:2px 6px;
 
 .pillars-editor { display:grid; gap:10px; }
 .pillar-row { display:grid; grid-template-columns:1fr 1.6fr auto; gap:8px; align-items:center; }
-.pillar-row input { padding:11px 13px; border:1px solid var(--a-line);
-  border-radius:var(--edp-r-input); font:inherit; font-size:14px; }
+.pillar-row input { padding:10px 13px; border:1px solid var(--a-line);
+  border-radius:var(--a-r-control); font:inherit; font-size:14px; }
 
 @media (max-width: 900px) {
   .admin { grid-template-columns:1fr; }
   .admin-side { position:static; height:auto; }
-  .admin-main { padding:0 18px 56px; }
+  .admin-nav { max-height:none; }
+  .admin { --a-gutter:16px; }
 }

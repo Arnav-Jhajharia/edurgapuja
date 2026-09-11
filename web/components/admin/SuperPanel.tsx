@@ -26,15 +26,25 @@ function Dashboard() {
 
   return (
     <>
+      {/* Published and Selling passes used to be tiles of their own. They are
+          not numbers anybody comes here for — they are how you read the pandal
+          count — so they sit under it, and the row loses two headline slots it
+          was not earning. */}
       <div className="tiles">
-        <Tile label="Pandals" value={data.pandals.total} />
-        <Tile label="Published" value={data.pandals.published} />
-        <Tile label="Selling passes" value={data.pandals.selling_passes} />
+        <Tile label="Pandals" value={data.pandals.total}
+              note={`${data.pandals.published} published · `
+                  + `${data.pandals.selling_passes} selling passes`} />
         <Tile label="Registered users" value={data.users} />
         <Tile label="Revenue" value={rupees(data.revenue_paise)} />
-        <Tile label="Donations received" value={data.donations.count} />
+        <Tile label="Donations received" value={data.donations.count}
+              note={`${rupees(data.donations.total_paise)} in total`} />
         <Tile label="Service bookings" value={data.service_bookings} />
-        <Tile label="Sponsors" value={data.sponsors.organisations} />
+        <Tile label="Sponsors" value={data.sponsors.organisations}
+              note={data.sponsors.pending_allocations > 0
+                ? `${data.sponsors.pending_allocations} allocation`
+                  + `${data.sponsors.pending_allocations === 1 ? "" : "s"} awaiting acceptance`
+                : `${data.sponsors.sub_sponsors} sub-sponsors`}
+              tone={data.sponsors.pending_allocations > 0 ? "warn" : "mute"} />
       </div>
 
       <Panel title="Needs attention" note="Everything waiting on somebody at the platform.">

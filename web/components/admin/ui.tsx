@@ -4,11 +4,19 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { ApiError } from "@/lib/admin";
 
-export function Tile({ label, value }: { label: string; value: ReactNode }) {
+/**
+ * A single number, and — when there is one worth giving — the line that says
+ * how to read it. "1,203 passes sold" is a fact; "of 2,000 issued" is the fact
+ * plus the thing you were about to go and look up.
+ */
+export function Tile({ label, value, note, tone = "mute" }: {
+  label: string; value: ReactNode; note?: ReactNode; tone?: "good" | "warn" | "mute";
+}) {
   return (
     <div className="tile">
       <span>{label}</span>
       <strong>{value}</strong>
+      {note && <em data-tone={tone}>{note}</em>}
     </div>
   );
 }
@@ -34,15 +42,20 @@ export function Table({ columns, rows, empty }: {
   columns: string[]; rows: ReactNode[][]; empty: string;
 }) {
   if (rows.length === 0) return <p className="empty">{empty}</p>;
+  // Eight columns of pass configuration do not fit a laptop. Scrolling the
+  // table inside its own card keeps the rail, the header and every other panel
+  // where they were, rather than dragging the whole page sideways.
   return (
-    <table>
-      <thead><tr>{columns.map((c) => <th key={c}>{c}</th>)}</tr></thead>
-      <tbody>
-        {rows.map((row, i) => (
-          <tr key={i}>{row.map((cell, j) => <td key={j}>{cell}</td>)}</tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="panel-scroll">
+      <table>
+        <thead><tr>{columns.map((c) => <th key={c}>{c}</th>)}</tr></thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i}>{row.map((cell, j) => <td key={j}>{cell}</td>)}</tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

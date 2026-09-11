@@ -59,9 +59,17 @@ export function Login({ onSignedIn }: { onSignedIn: () => void }) {
   return (
     <div className="login">
       <form className="login-card form" onSubmit={submit}>
-        <span className="login-mark"><Lotus /></span>
-        <h1>eDurgaPuja</h1>
-        <p className="sub">
+        {/* Mark and wordmark on one line, the way the rail carries them, so
+            signing in and being signed in look like the same product. */}
+        <div className="login-head">
+          <span className="login-mark"><Lotus /></span>
+          <div>
+            <h1>eDurgaPuja</h1>
+            <p className="sub">Admin login</p>
+          </div>
+        </div>
+
+        <p className="login-note">
           {method === "password"
             ? "Sign in with your mobile number and password."
             : sent ? "Enter the code we sent you."

@@ -38,7 +38,8 @@ function Overview({ data, reload, isSub }: any) {
         <Tile label={isSub ? "Passes bought" : "Passes granted"} value={t.granted} />
         {!isSub && <Tile label="Sold to sub-sponsors" value={t.transferred_out} />}
         <Tile label="Passes issued" value={t.issued} />
-        <Tile label="Remaining" value={t.available} />
+        <Tile label="Remaining" value={t.available}
+              note={`of ${t.granted} ${isSub ? "bought" : "granted"}`} />
       </div>
 
       <Pending data={data} reload={reload} />
@@ -106,7 +107,8 @@ function PassManagement({ data, reload, isSub }: any) {
     <>
       <div className="tiles">
         <Tile label="Passes issued" value={data.totals.issued} />
-        <Tile label="Passes remaining" value={data.totals.available} />
+        <Tile label="Passes remaining" value={data.totals.available}
+              note={`of ${data.totals.issued + data.totals.available} in your pool`} />
       </div>
 
       {!isSub && data.packages?.length > 0 && (

@@ -52,7 +52,8 @@ function Revenue({ pandal }: P) {
     <>
       <div className="tiles">
         <Tile label="Paid orders" value={revenue?.orders ?? "—"} />
-        <Tile label="Total received" value={revenue ? rupees(revenue.total_paise) : "—"} />
+        <Tile label="Total received" value={revenue ? rupees(revenue.total_paise) : "—"}
+              note={revenue ? `across ${revenue.orders} paid orders` : undefined} />
         <Tile label="Donations"
               value={byKind.donation ? rupees(byKind.donation.total_paise) : "₹0"} />
         <Tile label="Services"
@@ -1396,7 +1397,8 @@ function PassSales({ pandal }: P) {
       <div className="tiles">
         <Tile label="Places for sale" value={summary?.capacity ?? "—"} />
         <Tile label="Issued" value={summary?.issued ?? "—"} />
-        <Tile label="Still available" value={summary?.available ?? "—"} />
+        <Tile label="Still available" value={summary?.available ?? "—"}
+              note={summary ? `of ${summary.capacity} on sale` : undefined} />
         <Tile label="Pass revenue"
               value={summary ? rupees(summary.revenue_paise) : "—"} />
         <Tile label="Yet to visit" value={summary?.legs_pending ?? "—"} />
