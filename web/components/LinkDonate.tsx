@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { DonationLink, PandalPage } from "@/lib/api";
 import { rupees } from "@/lib/api";
+import { openCheckout } from "@/lib/checkout";
 import { ApiError, api } from "@/lib/visitor";
 
 type Status = { tone: "ok" | "error"; message: string } | null;
@@ -56,12 +57,20 @@ export function LinkDonate({ page, link }: { page: PandalPage; link: DonationLin
       const payload = await api<any>("/donations", {
         method: "POST", idempotent: true, json: body,
       });
-      setStatus({
-        tone: "ok",
-        message: `Thank you. ${rupees(payload.amount_paise)} is ready to pay — order ${
-          payload.order_id.slice(0, 8)
-        }.`,
+      const result = await openCheckout(payload.payment, {
+        name: page.pandal.name,
+        description: link.purpose ? `Towards ${link.purpose}` : `Donation to ${page.pandal.name}`,
+        prefillName: name,
+        themeColour: page.brand?.primary_colour,
       });
+
+      if (result.status === "paid") {
+        setStatus({ tone: "ok", message: `Thank you. Receipt ${result.receipt}.` });
+      } else if (result.status === "dismissed") {
+        setStatus({ tone: "error", message: "Payment cancelled — nothing has been charged." });
+      } else {
+        setStatus({ tone: "error", message: result.message });
+      }
     } catch (caught) {
       setStatus({
         tone: "error",

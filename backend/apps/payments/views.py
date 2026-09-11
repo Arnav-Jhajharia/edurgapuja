@@ -11,8 +11,19 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.common.errors import DomainError
+
 from . import providers, services
 from .providers import SignatureError, get_provider
+from .serializers import HandoffResultSerializer, HandoffSerializer
+
+
+class HandoffRejectedError(DomainError):
+    """The signature did not verify. 400, and nothing is marked paid."""
+
+    status_code = 400
+    default_code = "payment_signature_invalid"
+    default_detail = "That payment could not be verified."
 
 logger = logging.getLogger(__name__)
 
@@ -120,4 +131,41 @@ class PaymentMethodsView(APIView):
     @extend_schema(responses=None)
     def get(self, request):
         return Response({"providers": providers.available()})
+
+
+class VerifyPaymentView(APIView):
+    """Confirm a payment from the browser handoff.
+
+    Public because a donation needs no account — the proof is the signature,
+    not the caller. Without the key secret nobody can produce one, which is
+    exactly what stops a made-up payment id being marked paid.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(request=HandoffSerializer, responses=HandoffResultSerializer)
+    def post(self, request):
+        payload = HandoffSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        data = payload.validated_data
+
+        try:
+            payment = services.confirm_from_handoff(
+                order_id=data["razorpay_order_id"],
+                payment_id=data["razorpay_payment_id"],
+                signature=data["razorpay_signature"],
+            )
+        except SignatureError:
+            # Deliberately not 500 and deliberately not marked paid. Somebody
+            # is either confused or trying it on.
+            logger.warning("payment handoff failed signature verification for %s",
+                           data["razorpay_order_id"])
+            raise HandoffRejectedError from None
+
+        order = payment.order
+        return Response({
+            "status": order.status,
+            "order_id": str(order.id),
+            "receipt_number": order.receipt_number,
+        })
 

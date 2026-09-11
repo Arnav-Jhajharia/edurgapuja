@@ -28,9 +28,25 @@ from typing import Protocol
 
 from django.conf import settings
 
+#: Razorpay's floor. Below this the gateway refuses the order outright, so it is
+#: better refused here where the message can say why.
+MINIMUM_PAISE = 100
+
 
 class SignatureError(Exception):
-    """Raised when a webhook cannot be proven to have come from the provider."""
+    """Raised when a payment cannot be proven to have come from the provider."""
+
+
+class PaymentAmountError(Exception):
+    """The amount is one the gateway will not accept."""
+
+
+class PaymentRejectedError(Exception):
+    """The gateway understood the request and refused it."""
+
+
+class PaymentUnavailableError(Exception):
+    """The gateway could not be reached, or failed on its own side."""
 
 
 @dataclass(frozen=True)
@@ -50,10 +66,63 @@ class PaymentProvider(Protocol):
 class RazorpayProvider:
     name = "razorpay"
 
+    def _client(self):
+        import razorpay
+
+        return razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
     def create_order(self, *, amount_paise: int, receipt: str) -> ProviderOrder:
-        raise NotImplementedError(
-            "Razorpay order creation needs live credentials; configure RAZORPAY_KEY_ID."
-        )
+        """Create the order Standard Checkout opens against.
+
+        Razorpay takes **paise**, which is what the rest of this codebase
+        already holds money in, so nothing is converted here — the conversion
+        that does exist is Cashfree's, which wants rupees as a decimal.
+        """
+        import razorpay.errors
+
+        if amount_paise < MINIMUM_PAISE:
+            raise PaymentAmountError(
+                f"Razorpay will not take less than ₹{MINIMUM_PAISE / 100:.0f}."
+            )
+
+        try:
+            created = self._client().order.create({
+                "amount": amount_paise,
+                "currency": "INR",
+                # Ours, echoed back on the order and in the dashboard, so a
+                # support question can be traced to one of our orders.
+                "receipt": receipt[:40],
+                # Razorpay captures automatically rather than leaving the
+                # payment authorised and waiting for a second call.
+                "payment_capture": 1,
+            })
+        except razorpay.errors.BadRequestError as problem:
+            raise PaymentRejectedError(str(problem)) from problem
+        except Exception as problem:
+            # Anything else — network, 5xx, a bad key — is ours to retry, not
+            # the donor's to puzzle over.
+            raise PaymentUnavailableError(str(problem)) from problem
+
+        return ProviderOrder(provider=self.name,
+                             provider_order_id=created["id"],
+                             key_id=settings.RAZORPAY_KEY_ID)
+
+    def verify_handoff(self, *, order_id: str, payment_id: str, signature: str) -> None:
+        """Check the signature the browser hands back after the modal closes.
+
+        A different thing from the webhook signature, and easy to confuse: the
+        webhook signs the whole request body, this signs `order_id|payment_id`
+        with the API secret. The browser is not trusted, so this is what stops
+        somebody posting a made-up payment id and having it marked paid.
+        """
+        secret = settings.RAZORPAY_KEY_SECRET
+        if not secret:
+            raise SignatureError("Razorpay key secret is not configured.")
+
+        expected = hmac.new(secret.encode(), f"{order_id}|{payment_id}".encode(),
+                            hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(expected, signature or ""):
+            raise SignatureError("Payment signature did not verify.")
 
     def verify_webhook(self, raw_body: bytes, signature: str, timestamp: str = "") -> None:
         secret = settings.RAZORPAY_WEBHOOK_SECRET

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { PandalPage, ServiceFormField } from "@/lib/api";
 import { blockOf, rupees } from "@/lib/api";
 import { Card } from "@/components/Card";
+import { openCheckout } from "@/lib/checkout";
 import { SignIn } from "@/components/SignIn";
 import { ApiError, api, getPhone, getToken } from "@/lib/visitor";
 
@@ -114,10 +115,23 @@ function BookingForm({ page, service, onClose }: {
           details: answers,
         },
       });
-      setStatus({
-        tone: "ok",
-        message: `Held for you — ${rupees(body.amount_paise)} to pay.`,
+      const result = await openCheckout(body.payment, {
+        name: page.pandal.name,
+        description: service.name,
+        prefillPhone: signedInAs ?? "",
+        themeColour: page.brand?.primary_colour,
       });
+
+      if (result.status === "paid") {
+        setStatus({ tone: "ok", message: `Booked. Receipt ${result.receipt}.` });
+      } else if (result.status === "dismissed") {
+        setStatus({
+          tone: "error",
+          message: "Payment cancelled. Your place is held for a few minutes if you change your mind.",
+        });
+      } else {
+        setStatus({ tone: "error", message: result.message });
+      }
     } catch (caught) {
       // The server names the field, so the message points at the question that
       // needs fixing rather than saying "something went wrong".

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { Card } from "@/components/Card";
+import { openCheckout } from "@/lib/checkout";
 import { KycStep } from "@/components/KycStep";
 import { SignIn } from "@/components/SignIn";
 import type { PandalPage } from "@/lib/api";
@@ -67,12 +68,24 @@ export function Donate({ page }: { page: PandalPage }) {
       const payload = await api<any>("/donations", {
         method: "POST", idempotent: true, json: body,
       });
-      setStatus({
-        tone: "ok",
-        message: `Thank you. ${rupees(payload.amount_paise)} is ready to pay — order ${
-          payload.order_id.slice(0, 8)
-        }.`,
+
+      // The order exists; now take the money. Dismissing the modal leaves the
+      // order pending rather than failed — somebody may come back to it.
+      const result = await openCheckout(payload.payment, {
+        name: page.pandal.name,
+        description: `Donation to ${page.pandal.name}`,
+        prefillPhone: signedInAs ?? "",
+        prefillName: name,
+        themeColour: page.brand?.primary_colour,
       });
+
+      if (result.status === "paid") {
+        setStatus({ tone: "ok", message: `Thank you. Receipt ${result.receipt}.` });
+      } else if (result.status === "dismissed") {
+        setStatus({ tone: "error", message: "Payment cancelled — nothing has been charged." });
+      } else {
+        setStatus({ tone: "error", message: result.message });
+      }
     } catch (caught) {
       setStatus({
         tone: "error",

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { PandalPage } from "@/lib/api";
 import { blockOf, rupees } from "@/lib/api";
 import { Card } from "@/components/Card";
+import { openCheckout } from "@/lib/checkout";
 import { SignIn } from "@/components/SignIn";
 import { ApiError, api, getPhone, getToken } from "@/lib/visitor";
 
@@ -62,11 +63,28 @@ export function Passes({ page }: { page: PandalPage }) {
           contact_phone: signedInAs ?? "",
         },
       });
-      setStatus({
-        tone: "ok",
-        message: `${body.pass_code} is held for you — ${rupees(body.amount_paise)} to pay`
-          + (body.pandals_covered > 1 ? `, covering ${body.pandals_covered} pandals.` : "."),
+      const result = await openCheckout(body.payment, {
+        name: page.pandal.name,
+        description: `${selected.category.name} pass · ${selected.product_display}`,
+        prefillPhone: signedInAs ?? "",
+        themeColour: page.brand?.primary_colour,
       });
+
+      if (result.status === "paid") {
+        setStatus({
+          tone: "ok",
+          message: `${body.pass_code} is yours`
+            + (body.pandals_covered > 1 ? `, covering ${body.pandals_covered} pandals.` : "."),
+        });
+      } else if (result.status === "dismissed") {
+        // The hold stands until it lapses, so coming back shortly still works.
+        setStatus({
+          tone: "error",
+          message: "Payment cancelled. Your place is held for a few minutes if you change your mind.",
+        });
+      } else {
+        setStatus({ tone: "error", message: result.message });
+      }
     } catch (caught) {
       setStatus({ tone: "error",
                   message: caught instanceof ApiError ? caught.message : "That did not work." });

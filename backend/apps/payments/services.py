@@ -13,11 +13,35 @@ import logging
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.common.errors import DomainError, ValidationFailedError
 from apps.orders import services as orders
 from apps.orders.models import Order, OrderLine
 
 from .models import PaymentEvent, PaymentOrder
-from .providers import get_provider
+from .providers import (
+    PaymentAmountError,
+    PaymentRejectedError,
+    PaymentUnavailableError,
+    get_provider,
+)
+
+
+class PaymentNotFoundError(DomainError):
+    status_code = 404
+    default_code = "payment_not_found"
+    default_detail = "That payment does not belong to any order here."
+
+
+class PaymentGatewayError(DomainError):
+    """The gateway would not take the request.
+
+    502 rather than 500: nothing here is broken, the thing we depend on is —
+    and the client should say "try again", not "something went wrong".
+    """
+
+    status_code = 502
+    default_code = "payment_gateway_unavailable"
+    default_detail = "We could not reach the payment gateway. Please try again."
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +55,14 @@ def create_payment(*, order: Order, idempotency_key: str, provider_name: str = "
         return existing
 
     provider = get_provider(provider_name)
-    created = provider.create_order(amount_paise=order.total_paise, receipt=str(order.id))
+    try:
+        created = provider.create_order(amount_paise=order.total_paise, receipt=str(order.id))
+    except PaymentAmountError as problem:
+        raise ValidationFailedError(str(problem),
+                                    fields={"amount_paise": str(problem)}) from problem
+    except (PaymentRejectedError, PaymentUnavailableError) as problem:
+        logger.error("payment order creation failed at %s: %s", provider.name, problem)
+        raise PaymentGatewayError from problem
 
     try:
         return PaymentOrder.objects.create(
@@ -160,3 +191,34 @@ def _release(order: Order) -> None:
             release_service_booking(line)
         elif line.kind == OrderLine.Kind.PASS:
             release_pass(line)
+
+
+@transaction.atomic
+def confirm_from_handoff(*, order_id: str, payment_id: str, signature: str) -> PaymentOrder:
+    """Settle a payment from what the browser handed back when the modal closed.
+
+    The webhook remains the source of truth — it arrives whether or not the
+    browser survives the redirect, and it is what catches a payment completed
+    on a phone that then lost signal. This path exists so a donor sees "thank
+    you" immediately rather than watching a spinner until a webhook lands.
+
+    Both converge on the same `_capture`, which is idempotent, so whichever
+    arrives second does nothing.
+    """
+    payment = (PaymentOrder.objects
+               .select_for_update()
+               .filter(provider_order_id=order_id)
+               .first())
+    if payment is None:
+        # A signature can only be forged by somebody with the key secret, so a
+        # valid signature for an order we have never seen means our own state is
+        # wrong. Either way the browser learns nothing from the distinction.
+        raise PaymentNotFoundError
+
+    get_provider(payment.provider).verify_handoff(
+        order_id=order_id, payment_id=payment_id, signature=signature,
+    )
+
+    _capture(payment, {"id": payment_id, "method": ""})
+    return payment
+
