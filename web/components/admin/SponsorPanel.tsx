@@ -204,6 +204,7 @@ function SubSponsors({ data, reload }: any) {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [contact, setContact] = useState("");
+  const [adminPhone, setAdminPhone] = useState("");
   const [poolId, setPoolId] = useState(data.pools[0]?.id ?? "");
   const [grant, setGrant] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
@@ -220,13 +221,21 @@ function SubSponsors({ data, reload }: any) {
              note="They sign in with their own mobile number and one-time code — there is no password for anyone to see or share.">
         <div className="panel-body">
           <Form label="Create"
-                onDone={() => { setName(""); setPrice(""); setGrant(""); reloadOrgs(); reload(); }}
+                onDone={() => { setName(""); setPrice(""); setGrant(""); setAdminPhone("");
+                                reloadOrgs(); reload(); }}
                 submit={async () => {
                   const child = await api<any>("/admin/organisations", { method: "POST", json: {
-                    name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-                    parent: parent.id, contact_phone: contact,
+                    name, parent: parent.id, contact_phone: contact,
                     price_per_pass_paise: price ? Math.round(Number(price) * 100) : 0,
                   }});
+                  if (adminPhone) {
+                    // Their own way in. Until now this form created the
+                    // organisation and nothing else, so the panel's promise
+                    // that they sign in with their number was not yet true.
+                    await api("/admin/staff", { method: "POST", json: {
+                      phone: adminPhone, role: "sub_sponsor_admin", organisation: child.id,
+                    }});
+                  }
                   if (grant && poolId) {
                     await api(`/admin/pools/${poolId}/transfer`, { method: "POST", json: {
                       to_organisation: child.id, quantity: Number(grant),
@@ -238,6 +247,13 @@ function SubSponsors({ data, reload }: any) {
                    onChange={(e) => setName(e.target.value)} />
             <Field label="Contact mobile" value={contact}
                    onChange={(e) => setContact(e.target.value)} placeholder="98765 43210" />
+            <Field label="Sign-in number for their admin" value={adminPhone}
+                   onChange={(e) => setAdminPhone(e.target.value)}
+                   placeholder="+91 98765 43210" />
+            <p className="hint">
+              Optional, but without it nobody can open their panel. They do not need an
+              account first — their number is the invitation.
+            </p>
             <Field label="Price per pass · what you charge them" value={price} inputMode="decimal"
                    onChange={(e) => setPrice(e.target.value)} placeholder="100" />
             <Select label="Starter grant from" value={poolId}

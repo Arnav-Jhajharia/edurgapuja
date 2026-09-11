@@ -1153,3 +1153,101 @@ def test_the_sponsor_overview_carries_what_pass_management_shows(api, sponsor_ad
     assert "allocations" in body
     assert "issuances" in body
     assert "packages" in body
+
+
+# --------------------------------------------------------------------------
+# Creating a sponsor, and giving somebody a way into it
+# --------------------------------------------------------------------------
+
+def test_a_super_admin_creates_a_sponsor_and_its_first_administrator(api, super_admin):
+    """The organisation and a way in, which is what the console does in one submit.
+
+    Creating only the first is how the platform ends up with a company nobody
+    can open — which is exactly what it did until this existed.
+    """
+    api.force_authenticate(super_admin)
+
+    created = api.post(reverse("admin-organisation-list"),
+                       {"name": "Bengal Textiles", "contact_name": "Ritu Basu",
+                        "contact_phone": "+919812345678"}, format="json")
+    assert created.status_code == 201
+    # No slug was sent: an operator should not have to invent a unique one.
+    assert created.json()["slug"] == "bengal-textiles"
+
+    granted = api.post(reverse("admin-staff-list"),
+                       {"phone": "+919812345670", "role": Role.SPONSOR_ADMIN,
+                        "organisation": created.json()["id"]}, format="json")
+
+    assert granted.status_code == 201
+    membership = AdminMembership.objects.get(user__phone="+919812345670")
+    assert membership.role == Role.SPONSOR_ADMIN
+    assert str(membership.organisation_id) == created.json()["id"]
+
+
+def test_a_second_sponsor_of_the_same_name_gets_its_own_slug(api, super_admin, sponsor):
+    api.force_authenticate(super_admin)
+
+    response = api.post(reverse("admin-organisation-list"),
+                        {"name": "Sponsor One"}, format="json")
+
+    assert response.status_code == 201
+    assert response.json()["slug"] == "sponsor-one-2"
+
+
+def test_a_sponsor_gives_its_own_sub_sponsor_a_way_in(api, sponsor_admin, sponsor):
+    api.force_authenticate(sponsor_admin)
+    child = api.post(reverse("admin-organisation-list"),
+                     {"name": "Kolkata Sweets", "parent": str(sponsor.id)},
+                     format="json").json()
+
+    response = api.post(reverse("admin-staff-list"),
+                        {"phone": "+919812345671", "role": Role.SUB_SPONSOR_ADMIN,
+                         "organisation": child["id"]}, format="json")
+
+    assert response.status_code == 201
+    assert AdminMembership.objects.get(
+        user__phone="+919812345671").role == Role.SUB_SPONSOR_ADMIN
+
+
+def test_a_sponsor_cannot_give_somebody_elses_sub_sponsor_a_way_in(api, sponsor_admin):
+    stranger = Organisation.objects.create(name="Stranger Co", slug="stranger-co")
+    theirs = Organisation.objects.create(name="Their Sub", slug="their-sub", parent=stranger)
+    api.force_authenticate(sponsor_admin)
+
+    response = api.post(reverse("admin-staff-list"),
+                        {"phone": "+919812345672", "role": Role.SUB_SPONSOR_ADMIN,
+                         "organisation": str(theirs.id)}, format="json")
+
+    assert response.status_code == 422
+    assert not AdminMembership.objects.filter(user__phone="+919812345672").exists()
+
+
+def test_a_sponsor_cannot_promote_itself_by_granting_a_role(api, sponsor_admin, sponsor):
+    """The check is on the parent, so access only ever flows downward."""
+    api.force_authenticate(sponsor_admin)
+
+    response = api.post(reverse("admin-staff-list"),
+                        {"phone": sponsor_admin.phone, "role": Role.SUB_SPONSOR_ADMIN,
+                         "organisation": str(sponsor.id)}, format="json")
+
+    assert response.status_code == 422
+
+
+def test_a_sponsor_sees_the_access_it_granted_to_a_sub_sponsor(api, sponsor_admin, sponsor):
+    child = Organisation.objects.create(name="Sweets Four", slug="sweets-four", parent=sponsor)
+    make_admin("+919812345673", Role.SUB_SPONSOR_ADMIN, organisation=child)
+    api.force_authenticate(sponsor_admin)
+
+    rows = api.get(reverse("admin-staff-list")).json()["results"]
+
+    assert any(row["user_phone"] == "+919812345673" for row in rows)
+
+
+def test_a_pandal_admin_still_cannot_grant_a_sponsor_role(api, pandal_admin, sponsor):
+    api.force_authenticate(pandal_admin)
+
+    response = api.post(reverse("admin-staff-list"),
+                        {"phone": "+919812345674", "role": Role.SPONSOR_ADMIN,
+                         "organisation": str(sponsor.id)}, format="json")
+
+    assert response.status_code == 422

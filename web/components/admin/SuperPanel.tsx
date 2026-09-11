@@ -292,6 +292,60 @@ function Creatives() {
   );
 }
 
+/**
+ * A sponsor is two things: the organisation, and somebody who can sign in as
+ * it. Creating only the first leaves a company on the platform that nobody can
+ * open — so both happen in one submit, the same way a committee is onboarded.
+ */
+function NewSponsor({ onCreated }: { onCreated: () => void }) {
+  const [name, setName] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [adminPhone, setAdminPhone] = useState("");
+
+  return (
+    <Panel title="Add a sponsor"
+           note="Creates the organisation and, if you give a number, the person who can sign in as it. Pandals allocate passes to sponsors, so a sponsor has to exist before anything can be granted to it.">
+      <div className="panel-body">
+        <Form label="Create sponsor"
+              onDone={() => { setName(""); setContactName(""); setContactPhone("");
+                              setAdminPhone(""); onCreated(); }}
+              submit={async () => {
+                const created = await api<any>("/admin/organisations", {
+                  method: "POST",
+                  json: { name, contact_name: contactName, contact_phone: contactPhone },
+                });
+                if (adminPhone) {
+                  // Their own way in, straight away. Without this the sponsor
+                  // exists and nobody can open its panel.
+                  await api("/admin/staff", { method: "POST", json: {
+                    phone: adminPhone, role: "sponsor_admin", organisation: created.id,
+                  }});
+                }
+                return created;
+              }}>
+          <Field label="Sponsor name" value={name} required
+                 placeholder="e.g. Sponsor One"
+                 onChange={(e) => setName(e.target.value)} />
+          <div className="row">
+            <Field label="Who to contact" value={contactName}
+                   onChange={(e) => setContactName(e.target.value)} />
+            <Field label="Their number" value={contactPhone}
+                   onChange={(e) => setContactPhone(e.target.value)} />
+          </div>
+          <Field label="Sign-in number for their admin" value={adminPhone}
+                 placeholder="+91 98765 43210"
+                 onChange={(e) => setAdminPhone(e.target.value)} />
+          <p className="hint">
+            Optional, but without it nobody can open the sponsor&rsquo;s panel. They sign
+            in with this number and a one-time code — there is no password to send.
+          </p>
+        </Form>
+      </div>
+    </Panel>
+  );
+}
+
 function Sponsors() {
   const [pools, setPools] = useState<any[]>([]);
   const [allocations, setAllocations] = useState<any[]>([]);
@@ -311,7 +365,7 @@ function Sponsors() {
   useEffect(() => {
     list("/admin/organisations").then(setOrgs);
     list("/admin/pandals").then(setPandals);
-  }, []);
+  }, [nonce]);
 
   const reload = () => setNonce((n) => n + 1);
 
@@ -324,6 +378,8 @@ function Sponsors() {
 
   return (
     <>
+      <NewSponsor onCreated={reload} />
+
       <Panel
         title="Grant passes to a sponsor"
         note="A pool is not edited directly — its counters are the sum of what was granted, sold on and issued, and the database refuses any total that would break that. Granting passes is how a pool comes into being and how it grows.">

@@ -1078,18 +1078,35 @@ class StaffViewSet(mixins.ListModelMixin, mixins.CreateModelMixin,
                     .order_by("pandal__name", "user__phone"))
         if admin.is_super:
             return queryset
-        # Your own pandals' staff, and your own organisations' — never the
-        # platform's whole administrator list.
+        # Your own pandals' staff, your own organisations', and your
+        # sub-sponsors' — never the platform's whole administrator list. The
+        # last of those mirrors OrganisationViewSet, which already lets a
+        # sponsor reach its children: it grants their access below, so it has
+        # to be able to see and withdraw it.
         return queryset.filter(
-            Q(pandal_id__in=admin.pandal_ids) | Q(organisation_id__in=admin.organisation_ids)
+            Q(pandal_id__in=admin.pandal_ids)
+            | Q(organisation_id__in=admin.organisation_ids)
+            | Q(organisation__parent_id__in=admin.organisation_ids)
         )
 
     def perform_create(self, serializer):
         admin = self.request.admin
         role = serializer.validated_data["role"]
         pandal = serializer.validated_data.get("pandal")
+        organisation = serializer.validated_data.get("organisation")
 
         if admin.is_super:
+            return serializer.save()
+
+        # A sponsor gives its own sub-sponsors their way in. It already creates
+        # the organisation, and an organisation nobody can sign in to is half an
+        # account — the missing half being the one that made it useful. The
+        # check is on the *parent*, so this grants access downward only: you can
+        # let your own sub-sponsor in, never somebody else's and never yourself
+        # a second role.
+        if role == Role.SUB_SPONSOR_ADMIN:
+            if organisation is None or not admin.owns_organisation(organisation.parent_id):
+                raise ValidationFailedError("That sub-sponsor is not yours.")
             return serializer.save()
 
         # A pandal admin may add people to their own pandal, and only as pandal

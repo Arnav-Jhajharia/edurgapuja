@@ -47,6 +47,21 @@ class AdminMeSerializer(serializers.Serializer):
     organisations = serializers.ListField(child=serializers.DictField())
 
 
+def free_slug(model, name: str, *, fallback: str, length: int = 55) -> str:
+    """Derive a slug from a typed name, and make it unique rather than colliding.
+
+    Shared, because a committee's subdomain and a sponsor's short name are the
+    same problem: somebody types a name into a console and a unique slug has to
+    come out of it, without them being asked to invent one.
+    """
+    base = slugify(name)[:length] or fallback
+    candidate, n = base, 2
+    while model.objects.filter(slug=candidate).exists():
+        candidate = f"{base}-{n}"
+        n += 1
+    return candidate
+
+
 class AdminLocalitySerializer(serializers.ModelSerializer):
     # `city` is write-only: read back nested under a city it would be noise, but
     # creating one needs to say which city it is in.
@@ -105,18 +120,8 @@ class AdminPandalSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         if self.instance is None and not attrs.get("slug"):
-            attrs["slug"] = self._free_slug(attrs.get("name", ""))
+            attrs["slug"] = free_slug(Pandal, attrs.get("name", ""), fallback="pandal")
         return attrs
-
-    @staticmethod
-    def _free_slug(name: str) -> str:
-        """Derive one from the name, and make it unique rather than colliding."""
-        base = slugify(name)[:55] or "pandal"
-        candidate, n = base, 2
-        while Pandal.objects.filter(slug=candidate).exists():
-            candidate = f"{base}-{n}"
-            n += 1
-        return candidate
 
 
 HEX = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
@@ -423,12 +428,23 @@ class AdminOrganisationSerializer(serializers.ModelSerializer):
     is_sub_sponsor = serializers.BooleanField(read_only=True)
     passes_held = serializers.SerializerMethodField()
     paid_to_parent_paise = serializers.SerializerMethodField()
+    # Derived from the name when not given. Unlike a pandal's, this slug is not
+    # an address anybody was handed, so it is not frozen after creation — but it
+    # is still unique, and asking an operator to invent one was how creating a
+    # second "Sponsor One" turned into an unexplained 422.
+    slug = serializers.SlugField(max_length=180, required=False)
 
     class Meta:
         model = Organisation
         fields = ("id", "name", "slug", "parent", "is_sub_sponsor", "contact_name",
                   "contact_phone", "contact_email", "price_per_pass_paise",
                   "passes_held", "paid_to_parent_paise", "is_active")
+
+    def validate(self, attrs):
+        if self.instance is None and not attrs.get("slug"):
+            attrs["slug"] = free_slug(Organisation, attrs.get("name", ""),
+                                      fallback="sponsor", length=170)
+        return attrs
 
     def get_passes_held(self, org) -> int:
         return sum(p.available for p in org.pools.all())
