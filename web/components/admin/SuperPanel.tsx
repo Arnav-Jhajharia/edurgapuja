@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { api, list, rupees } from "@/lib/admin";
+import { ApiError, api, list, rupees } from "@/lib/admin";
 
 import { pandalDisplayHost, pandalHref } from "@/lib/urls";
 
@@ -480,6 +480,15 @@ function Issuances() {
   );
 }
 
+/** Every role a Super Admin may grant. Scope is decided by the role itself. */
+const ROLES: [string, string][] = [
+  ["", "No access · an ordinary visitor"],
+  ["pandal_admin", "Pandal Admin · one committee's console"],
+  ["sponsor_admin", "Sponsor Admin · one sponsor's pools and branding"],
+  ["sub_sponsor_admin", "Sub-Sponsor Admin · buys from its parent sponsor"],
+  ["super_admin", "Super Admin · the whole platform"],
+];
+
 function Users() {
   const [term, setTerm] = useState("");
   const [adminsOnly, setAdminsOnly] = useState(false);
@@ -487,9 +496,26 @@ function Users() {
   const [nonce, setNonce] = useState(0);
   const [editing, setEditing] = useState<any>(null);
 
-  const blank = { phone: "", first_name: "", last_name: "", email: "" };
+  const [pandals, setPandals] = useState<any[]>([]);
+  const [orgs, setOrgs] = useState<any[]>([]);
+
+  const blank = { phone: "", first_name: "", last_name: "", email: "",
+                  role: "", pandal: "", organisation: "" };
   const [draft, setDraft] = useState<any>(blank);
   const set = (k: string) => (e: any) => setDraft({ ...draft, [k]: e.target.value });
+
+  // What a role is scoped to, which is what decides the second dropdown. A
+  // Super Admin is scoped to nothing, which is the point of them.
+  const scope = draft.role === "pandal_admin" ? "pandal"
+              : draft.role === "sponsor_admin" || draft.role === "sub_sponsor_admin"
+                ? "organisation" : "";
+  const organisations = orgs.filter((o) =>
+    draft.role === "sub_sponsor_admin" ? o.is_sub_sponsor : !o.is_sub_sponsor);
+
+  useEffect(() => {
+    list("/admin/pandals").then(setPandals);
+    list("/admin/organisations").then(setOrgs);
+  }, []);
 
   // Typing straight into a query would fire a request per keystroke. A short
   // pause is enough: this is a support tool, not a type-ahead.
@@ -505,8 +531,30 @@ function Users() {
 
   function edit(u: any) {
     setEditing(u);
-    setDraft({ phone: u.phone, first_name: u.first_name ?? "",
+    // Access starts blank rather than pre-filled: what this form does to a
+    // role is grant one, never edit the ones they hold. Those are in the
+    // table's Authority column, and withdrawing one is a different action.
+    setDraft({ ...blank, phone: u.phone, first_name: u.first_name ?? "",
                last_name: u.last_name ?? "", email: u.email ?? "" });
+  }
+
+  /** Create the account, unless somebody already has that number.
+   *
+   * When a role was chosen, an existing account is the good case and not a
+   * failure: the point of the submit is the grant, and `/admin/staff` will
+   * find them by number anyway. With no role there is nothing else to do, so
+   * the collision is the answer and it is reported.
+   */
+  async function createPerson() {
+    try {
+      return await api("/admin/users", { method: "POST", json: {
+        phone: draft.phone, first_name: draft.first_name,
+        last_name: draft.last_name, email: draft.email,
+      }});
+    } catch (caught) {
+      if (draft.role && caught instanceof ApiError && caught.fields?.phone) return null;
+      throw caught;
+    }
   }
 
   return (
@@ -520,21 +568,68 @@ function Users() {
         <div className="panel-body">
           <Form label={editing ? "Save changes" : "Add person"}
                 onDone={() => { setEditing(null); setDraft(blank); setNonce((n) => n + 1); }}
-                submit={() => editing
-                  ? api(`/admin/users/${editing.id}`, { method: "PATCH", json: {
-                      first_name: draft.first_name, last_name: draft.last_name,
-                      email: draft.email } })
-                  : api("/admin/users", { method: "POST", json: draft })}>
+                submit={async () => {
+                  const person = editing
+                    ? await api(`/admin/users/${editing.id}`, { method: "PATCH", json: {
+                        first_name: draft.first_name, last_name: draft.last_name,
+                        email: draft.email } })
+                    : await createPerson();
+                  if (draft.role) {
+                    await api("/admin/staff", { method: "POST", json: {
+                      phone: draft.phone, role: draft.role,
+                      pandal: scope === "pandal" ? draft.pandal : null,
+                      organisation: scope === "organisation" ? draft.organisation : null,
+                    }});
+                  }
+                  return person;
+                }}>
             <Field label="Mobile number" value={draft.phone} required
                    placeholder="98765 43210" disabled={!!editing} onChange={set("phone")} />
             <Field label="First name" value={draft.first_name} onChange={set("first_name")} />
             <Field label="Last name" value={draft.last_name} onChange={set("last_name")} />
             <Field label="Email · optional" value={draft.email} type="email"
                    onChange={set("email")} />
+
+            <Select label="Access" value={draft.role} onChange={set("role")}>
+              {ROLES.map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </Select>
+
+            {scope === "pandal" && (
+              <Select label="At which pandal" value={draft.pandal} required
+                      onChange={set("pandal")}>
+                <option value="">Choose a pandal…</option>
+                {pandals.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </Select>
+            )}
+
+            {scope === "organisation" && (
+              <Select label={draft.role === "sub_sponsor_admin"
+                               ? "Which sub-sponsor" : "Which sponsor"}
+                      value={draft.organisation} required onChange={set("organisation")}>
+                <option value="">
+                  {draft.role === "sub_sponsor_admin"
+                    ? "Choose a sub-sponsor…" : "Choose a sponsor…"}
+                </option>
+                {organisations.map((o: any) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </Select>
+            )}
+
+            {draft.role === "super_admin" && (
+              <p className="hint" data-tone="warn">
+                A Super Admin sees every pandal, every sponsor and every person on the
+                platform, and can publish any page. There is no narrower version of it.
+              </p>
+            )}
           </Form>
           <p className="hint">
             There is no password here. Sign-in is by one-time code, so the number is
-            the account — which is also why it cannot be changed once set.
+            the account — which is also why it cannot be changed once set. Access can be
+            left off: most people on this list are visitors, and giving somebody a role
+            is a separate decision from creating their account.
           </p>
         </div>
       </Panel>

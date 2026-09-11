@@ -262,6 +262,9 @@ code { font-size:12.5px; background:var(--a-bg); padding:2px 6px;
 .msg[data-tone="ok"] { color:var(--a-good); }
 .empty { padding:40px 18px; text-align:center; color:var(--a-mute); font-size:14px; }
 .hint { margin:0; font-size:13px; color:var(--a-mute); line-height:1.55; }
+/* A hint that is a consequence rather than an aside — granting authority
+   nobody can narrow afterwards, say. Same size, so it stays a hint. */
+.hint[data-tone="warn"] { color:var(--a-warn); }
 .muted { color:var(--a-mute); }
 .field-label { font-size:10px; letter-spacing:.12em; text-transform:uppercase;
   color:var(--a-mute); font-weight:500; display:block; margin-bottom:7px; }

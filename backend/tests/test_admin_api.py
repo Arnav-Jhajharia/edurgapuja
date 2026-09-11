@@ -1251,3 +1251,34 @@ def test_a_pandal_admin_still_cannot_grant_a_sponsor_role(api, pandal_admin, spo
                          "organisation": str(sponsor.id)}, format="json")
 
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize("role,scope", [
+    (Role.PANDAL_ADMIN, "pandal"),
+    (Role.SPONSOR_ADMIN, "organisation"),
+    (Role.SUB_SPONSOR_ADMIN, "organisation"),
+    (Role.SUPER_ADMIN, None),
+])
+def test_a_super_admin_grants_every_role_the_people_pane_offers(api, super_admin, pandal,
+                                                                 sponsor, role, scope):
+    """The People pane offers four roles, so the API has to accept four.
+
+    A Super Admin is not constrained on *which* entity — that check exists only
+    for the narrower callers — so both sponsor roles point at the same
+    organisation here, and the super admin role at nothing at all.
+    """
+    api.force_authenticate(super_admin)
+    body = {"phone": "+919812345680", "role": role}
+    if scope == "pandal":
+        body["pandal"] = str(pandal.id)
+    elif scope == "organisation":
+        body["organisation"] = str(sponsor.id)
+
+    response = api.post(reverse("admin-staff-list"), body, format="json")
+
+    assert response.status_code == 201
+    membership = AdminMembership.objects.get(user__phone="+919812345680")
+    assert membership.role == role
+    # The account did not exist a moment ago: granting access creates it, which
+    # is what lets the People pane hand a role to somebody's number directly.
+    assert membership.user.phone == "+919812345680"
