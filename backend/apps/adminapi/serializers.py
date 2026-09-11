@@ -27,6 +27,7 @@ from apps.services.models import (
 )
 from apps.sponsorship.models import (
     BrandingCreative,
+    BrandingPlacement,
     Organisation,
     Pool,
     PoolAllocation,
@@ -324,13 +325,90 @@ class AdminSupportRequestSerializer(serializers.ModelSerializer):
 
 
 class AdminVolunteerSerializer(serializers.ModelSerializer):
+    """Adding a volunteer is naming a phone number.
+
+    The same reasoning as `AdminStaffSerializer`: gate staff mostly have never
+    opened the app, so the account is created here rather than failing at their
+    first sign-in. `user` stays writable for the rare case of attaching an
+    account you already have.
+    """
+
+    phone = PhoneField(write_only=True, required=False)
     name = serializers.CharField(source="user.full_name", read_only=True)
-    phone = serializers.CharField(source="user.phone", read_only=True)
+    user_phone = serializers.CharField(source="user.phone", read_only=True)
     gate_name = serializers.CharField(source="gate.name", default="", read_only=True)
 
     class Meta:
         model = Volunteer
-        fields = ("id", "pandal", "user", "name", "phone", "gate", "gate_name", "is_active")
+        fields = ("id", "pandal", "user", "phone", "name", "user_phone",
+                  "gate", "gate_name", "is_active")
+        extra_kwargs = {"user": {"required": False}}
+
+    def to_internal_value(self, data):
+        """Turn the phone into a user *before* the validators run.
+
+        `Volunteer` is unique on (user, pandal), so DRF generates a
+        UniqueTogetherValidator — and that validator insists every field it
+        covers is present, which overrides `required=False` on `user`. It also
+        runs before `validate()`, so resolving the account there would be too
+        late. Doing it here means the uniqueness check sees a real user and
+        reports an honest "already a volunteer here" instead of a confusing
+        "this field is required".
+        """
+        value = super().to_internal_value(data)
+        phone = value.pop("phone", "")
+        if not value.get("user"):
+            if not phone:
+                raise serializers.ValidationError(
+                    {"phone": "Give a mobile number for the volunteer."}
+                )
+            # Created if they have never opened the app, exactly as staff are.
+            value["user"], _ = User.objects.get_or_create(phone=phone)
+        return value
+
+    def update(self, instance, validated):
+        validated.pop("phone", None)
+        return super().update(instance, validated)
+
+
+class AdminPlacementSerializer(serializers.ModelSerializer):
+    """The closed list of places a creative may appear.
+
+    Platform-level master data: a sponsor buying "Home Screen" buys the same
+    surface everywhere, and letting each pandal invent placements would make
+    entitlements unenforceable (FR-170). Until now it existed only in the seed.
+    """
+
+    class Meta:
+        model = BrandingPlacement
+        fields = ("id", "name", "slug", "description", "price_per_week_paise",
+                  "is_active", "sort_order")
+
+
+class AdminUserWriteSerializer(serializers.ModelSerializer):
+    """Creating or correcting a person from the console.
+
+    Deliberately narrow. There is no password here and never will be — sign-in
+    is by one-time code, so an operator who could set one could take an account.
+    The phone is the identity, so it is settable once and frozen afterwards.
+    """
+
+    phone = PhoneField()
+
+    class Meta:
+        model = User
+        fields = ("id", "phone", "first_name", "last_name", "email",
+                  "date_of_birth", "gender", "city", "state", "pin_code", "is_active")
+        read_only_fields = ("id",)
+
+    def validate_phone(self, value):
+        if self.instance and value != self.instance.phone:
+            raise serializers.ValidationError(
+                "A mobile number is the account's identity and cannot be changed here."
+            )
+        if not self.instance and User.objects.filter(phone=value).exists():
+            raise serializers.ValidationError("Somebody already has that number.")
+        return value
 
 
 class AdminGateSerializer(serializers.ModelSerializer):

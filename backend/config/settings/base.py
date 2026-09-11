@@ -115,11 +115,11 @@ OTP_SENDER_BACKEND = env("OTP_SENDER_BACKEND",
 # MSG91 delivers the message; the code itself is generated, hashed and verified
 # here, so this is a transport and nothing more.
 MSG91_TEMPLATE_ID = env("MSG91_TEMPLATE_ID", default="")
-MSG_91_AUTH_KEY = env("MSG_91_AUTH_KEY", default="")
+MSG91_AUTH_KEY = env("MSG91_AUTH_KEY", default="")
 # MSG91 calls the six-character DLT header both "sender" and "sender ID".
 # Either variable works; SENDER wins if both are set.
-MSG_91_SENDER = env("MSG_91_SENDER", default="")
-MSG_91_SENDER_ID = env("MSG_91_SENDER_ID", default="")
+MSG91_SENDER = env("MSG91_SENDER", default="")
+MSG91_SENDER_ID = env("MSG91_SENDER_ID", default="")
 # The variable name inside the DLT-approved template that carries the code.
 # MSG91's own OTP templates conventionally use ##OTP##.
 MSG91_CODE_VARIABLE = env("MSG91_CODE_VARIABLE", default="OTP")

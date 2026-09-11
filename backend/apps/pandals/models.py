@@ -216,6 +216,9 @@ class Volunteer(BaseModel):
     is_active = models.BooleanField(default=True)
 
     class Meta:
+        # Explicit, because this list is paginated: an unordered queryset can
+        # show the same volunteer on two pages and miss another entirely.
+        ordering = ("user__first_name", "user__phone")
         constraints = [
             models.UniqueConstraint(fields=["user", "pandal"], name="uniq_volunteer_per_pandal")
         ]

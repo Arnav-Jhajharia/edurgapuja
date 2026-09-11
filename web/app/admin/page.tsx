@@ -62,6 +62,7 @@ const SCREENS: Record<string, Group[]> = {
     { group: "Platform", items: [["dashboard", "Dashboard"], ["pandals", "Pandals"],
                                  ["sponsors-pools", "Sponsor pools"],
                                  ["creatives", "Branding review"],
+                                 ["issuances", "Pass issue history"],
                                  ["users", "People"]] },
     ...forSuperAdmin(PANDAL_GROUPS),
   ],
@@ -73,7 +74,7 @@ const SCREENS: Record<string, Group[]> = {
     back to the Donations screen. */
 const PANDAL_SCREENS = new Set(PANDAL_GROUPS.flatMap((g) => g.items.map(([key]) => key)));
 const SUPER_SCREENS = new Set(["dashboard", "pandals", "sponsors-pools", "creatives",
-                               "users"]);
+                               "issuances", "users"]);
 
 export default function AdminPage() {
   const [me, setMe] = useState<Me | null>(null);

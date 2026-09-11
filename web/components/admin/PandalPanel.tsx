@@ -39,6 +39,11 @@ function Revenue({ pandal }: P) {
   const { data: bookings } = useLoad<any[]>(
     () => list(`/admin/service-bookings?pandal=${pandal.id}`), [pandal.id]);
 
+  const { data: links, reload: reloadLinks } = useLoad<any[]>(
+    () => list(`/admin/donation-links?pandal=${pandal.id}`), [pandal.id]);
+  const [purpose, setPurpose] = useState("");
+  const [amount, setAmount] = useState("");
+
   const byKind: Record<string, any> = {};
   for (const row of revenue?.by_kind ?? []) byKind[row.kind] = row;
   const received = (donations ?? []).filter((d) => d.received_at);
@@ -53,6 +58,39 @@ function Revenue({ pandal }: P) {
         <Tile label="Services"
               value={byKind.service_booking ? rupees(byKind.service_booking.total_paise) : "₹0"} />
       </div>
+
+      <Panel title="Generate a donation link"
+             note="A shareable address that opens straight on the ask — for a committee member collecting for something specific.">
+        <div className="panel-body">
+          <Form label="Generate link"
+                onDone={() => { setPurpose(""); setAmount(""); reloadLinks(); }}
+                submit={() => api("/admin/donation-links", {
+                  method: "POST",
+                  json: {
+                    pandal: pandal.id,
+                    purpose,
+                    suggested_amount_paise: amount ? Math.round(Number(amount) * 100) : null,
+                  },
+                })}>
+            <Field label="Purpose · optional" value={purpose} placeholder="Bhog fund"
+                   onChange={(e) => setPurpose(e.target.value)} />
+            <Field label="Suggested amount · optional" value={amount} inputMode="decimal"
+                   placeholder="501" onChange={(e) => setAmount(e.target.value)} />
+          </Form>
+        </div>
+        <Table columns={["Purpose", "Suggested", "Link", "Donations", ""]}
+               rows={(links ?? []).slice(0, 5).map((l: any) => [
+                 l.purpose || <em>General</em>,
+                 l.suggested_amount_paise
+                   ? <span className="num">{rupees(l.suggested_amount_paise)}</span> : "—",
+                 // One helper builds every pandal URL — hand-rolling it here is
+                 // what put localhost:3000 into production links before.
+                 <code className="link-cell">{donationLinkUrl(pandal.slug, l.token)}</code>,
+                 <span className="num">{l.donation_count ?? 0}</span>,
+                 <CopyButton text={donationLinkUrl(pandal.slug, l.token)} />,
+               ])}
+               empty="No links yet." />
+      </Panel>
 
       <Panel title="Recent donations"
              note="Direct contributions made through this pandal's page.">
@@ -533,6 +571,8 @@ function Volunteers({ pandal }: P) {
   const { data: volunteers, reload } = useLoad<any[]>(
     () => list(`/admin/volunteers?pandal=${pandal.id}`), [pandal.id]);
   const [gateName, setGateName] = useState("");
+  const [volPhone, setVolPhone] = useState("");
+  const [volGate, setVolGate] = useState("");
 
   return (
     <>
@@ -551,9 +591,29 @@ function Volunteers({ pandal }: P) {
       </Panel>
 
       <Panel title="Volunteers" note="Deactivating one immediately ends their ability to scan.">
+        <div className="panel-body">
+          <Form label="Add volunteer"
+                onDone={() => { setVolPhone(""); setVolGate(""); reload(); }}
+                submit={() => api("/admin/volunteers", {
+                  method: "POST",
+                  json: { pandal: pandal.id, phone: volPhone, gate: volGate || null },
+                })}>
+            <Field label="Mobile number" value={volPhone} required placeholder="98765 43210"
+                   onChange={(e) => setVolPhone(e.target.value)} />
+            <Select label="Assigned gate · optional" value={volGate}
+                    onChange={(e) => setVolGate(e.target.value)}>
+              <option value="">Unassigned</option>
+              {(gates ?? []).map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </Select>
+          </Form>
+          <p className="hint">
+            Naming the number is all it takes — the account is created if this person
+            has never opened the app, so their first sign-in works.
+          </p>
+        </div>
         <Table columns={["Name", "Mobile", "Assigned gate", "Status", ""]}
                rows={(volunteers ?? []).map((v) => [
-                 v.name || "—", v.phone, v.gate_name || "Unassigned",
+                 v.name || "—", v.user_phone, v.gate_name || "Unassigned",
                  <Pill value={v.is_active ? "active" : "off"} />,
                  <button className="abtn abtn-quiet" onClick={async () => {
                    await api(`/admin/volunteers/${v.id}`,
@@ -561,7 +621,7 @@ function Volunteers({ pandal }: P) {
                    reload();
                  }}>{v.is_active ? "Deactivate" : "Reactivate"}</button>,
                ])}
-               empty="No volunteers yet. They are added by invitation once gate scanning is switched on." />
+               empty="No volunteers yet." />
       </Panel>
     </>
   );

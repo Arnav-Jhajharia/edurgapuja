@@ -59,6 +59,7 @@ from apps.services.templates import TEMPLATES, apply_template
 from apps.sponsorship import operations as pools
 from apps.sponsorship.models import (
     BrandingCreative,
+    BrandingPlacement,
     Organisation,
     Pool,
     PoolAllocation,
@@ -1109,17 +1110,40 @@ class StaffViewSet(mixins.ListModelMixin, mixins.CreateModelMixin,
         super().perform_destroy(instance)
 
 
-class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
+                  mixins.CreateModelMixin, mixins.UpdateModelMixin,
+                  viewsets.GenericViewSet):
     """Everyone with an account, for the Super Admin only.
 
-    List and retrieve, nothing else: an account is created by verifying a phone
-    number and is closed by the person who owns it, so there is no edit here to
-    write. Searching is by phone or name because that is what a support call
-    gives you.
+    Ordinarily an account opens itself: somebody verifies a mobile number and
+    the account exists. Creating one here is for the case that came before
+    that — a committee handing over a list of people who have not downloaded
+    anything yet, and who should not have to be chased before they can be
+    given a role.
+
+    What is deliberately absent is a password field. Sign-in is by one-time
+    code, so an operator able to set a secret would be able to take an account
+    rather than merely open one. Correcting a name or an email is a support
+    action; becoming somebody is not.
     """
 
     permission_classes = [IsSuperAdmin]
+    http_method_names = ["get", "post", "patch", "head", "options"]
     serializer_class = s.AdminUserSerializer
+
+    def get_serializer_class(self):
+        # Read and write are different shapes: the list carries computed grants,
+        # the write form carries only what an operator may actually set.
+        if self.action in {"create", "update", "partial_update"}:
+            return s.AdminUserWriteSerializer
+        return s.AdminUserSerializer
+
+    def update(self, request, *args, **kwargs):
+        if not kwargs.get("partial"):
+            raise ValidationFailedError(
+                "Use PATCH to correct a person — a PUT would blank every field you did not send."
+            )
+        return super().update(request, *args, **kwargs)
 
     queryset = User.objects.none()  # for schema generation only
 
@@ -1137,6 +1161,27 @@ class UserViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
         if self.request.query_params.get("admins_only") == "true":
             queryset = queryset.filter(memberships__isnull=False).distinct()
         return queryset
+
+
+class PlacementViewSet(viewsets.ModelViewSet):
+    """Where a creative may appear, and what a week of it costs.
+
+    Read by any admin, because the branding form needs to offer the list.
+    Written only by a Super Admin: a placement is platform inventory, and a
+    sponsor able to invent one could grant itself a surface no package sells.
+    """
+
+    serializer_class = s.AdminPlacementSerializer
+    queryset = BrandingPlacement.objects.none()  # for schema generation only
+
+    def get_permissions(self):
+        return [IsSuperAdmin()] if self.request.method not in ("GET", "HEAD", "OPTIONS") \
+            else [IsAdmin()]
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return BrandingPlacement.objects.none()
+        return BrandingPlacement.objects.order_by("sort_order", "name")
 
 
 class CreativeViewSet(viewsets.ModelViewSet):

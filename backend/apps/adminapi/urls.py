@@ -26,6 +26,8 @@ router.register("packages", views.PackageViewSet, basename="admin-package")
 router.register("organisations", views.OrganisationViewSet, basename="admin-organisation")
 router.register("allocations", views.AllocationViewSet, basename="admin-allocation")
 router.register("pools", views.PoolViewSet, basename="admin-pool")
+router.register("branding-placements", views.PlacementViewSet,
+                basename="admin-placement")
 router.register("creatives", views.CreativeViewSet, basename="admin-creative")
 router.register("issuances", views.IssuanceViewSet, basename="admin-issuance")
 router.register("users", views.UserViewSet, basename="admin-user")
