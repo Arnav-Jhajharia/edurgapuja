@@ -191,3 +191,93 @@ def test_a_name_is_required_because_the_register_is_checked_against_it(api, visi
     response = api.post(reverse("kyc-pan"), {"pan": "ABCDE1234F", "name": "  "}, format="json")
 
     assert response.status_code == 422
+
+
+# --------------------------------------------------------------------------
+# The shapes Sandbox actually returns
+# --------------------------------------------------------------------------
+
+class FakeResponse:
+    def __init__(self, body, status_code=200):
+        self._body, self.status_code = body, status_code
+        self.content = b"{}"
+        self.text = str(body)
+
+    def json(self):
+        return self._body
+
+
+@override_settings(SANDBOX_API_KEY="key_test_x", SANDBOX_API_SECRET="secret_test_x")
+def test_the_access_token_is_read_from_the_data_envelope(monkeypatch):
+    """Sandbox nests it under `data`. Reading the top level yields an empty
+    string and every later call 401s in a way that looks like bad credentials."""
+    from django.core.cache import cache
+
+    from apps.kyc.providers import SandboxProvider
+
+    cache.delete("kyc:sandbox:token")
+    monkeypatch.setattr("apps.kyc.providers.httpx.post",
+                        lambda *a, **k: FakeResponse({"code": 200,
+                                                      "data": {"access_token": "the-token"}}))
+
+    assert SandboxProvider()._token() == "the-token"
+
+
+@override_settings(SANDBOX_API_KEY="key_test_x", SANDBOX_API_SECRET="secret_test_x")
+def test_a_valid_pan_registered_to_someone_else_is_refused(monkeypatch):
+    """`status` says the number exists; `name_as_per_pan_match` says it belongs
+    to the name submitted. Treating the first as sufficient would let anybody
+    claim anybody's PAN."""
+    from django.core.cache import cache
+
+    from apps.kyc.providers import SandboxProvider
+
+    cache.set("kyc:sandbox:token", "t", 60)
+    monkeypatch.setattr("apps.kyc.providers.httpx.post",
+                        lambda *a, **k: FakeResponse({
+                            "transaction_id": "txn-1",
+                            "data": {"status": "VALID", "name_as_per_pan_match": False},
+                        }))
+
+    result = SandboxProvider().verify_pan(pan="ABCDE1234F", name="Somebody Else")
+
+    assert result.verified is False
+    assert "different name" in result.reason
+
+
+@override_settings(SANDBOX_API_KEY="key_test_x", SANDBOX_API_SECRET="secret_test_x")
+def test_a_matching_pan_records_the_name_that_was_confirmed(monkeypatch):
+    """Sandbox returns no name, only whether ours matched."""
+    from django.core.cache import cache
+
+    from apps.kyc.providers import SandboxProvider
+
+    cache.set("kyc:sandbox:token", "t", 60)
+    monkeypatch.setattr("apps.kyc.providers.httpx.post",
+                        lambda *a, **k: FakeResponse({
+                            "transaction_id": "txn-2",
+                            "data": {"status": "VALID", "name_as_per_pan_match": True},
+                        }))
+
+    result = SandboxProvider().verify_pan(pan="ABCDE1234F", name="Ananya Sen")
+
+    assert result.verified is True
+    assert result.name_on_record == "Ananya Sen"
+    assert result.reference == "txn-2"
+
+
+@override_settings(SANDBOX_API_KEY="key_test_abc", SANDBOX_API_SECRET="s", SANDBOX_BASE_URL="")
+def test_test_credentials_go_to_the_test_host():
+    """A test key against the live host is a 401 that reads like bad
+    credentials, so the host is inferred from the prefix."""
+    from apps.kyc.providers import SandboxProvider
+
+    assert SandboxProvider().base_url == "https://test-api.sandbox.co.in"
+
+
+@override_settings(SANDBOX_API_KEY="key_live_abc", SANDBOX_API_SECRET="s", SANDBOX_BASE_URL="")
+def test_live_credentials_go_to_the_live_host():
+    from apps.kyc.providers import SandboxProvider
+
+    assert SandboxProvider().base_url == "https://api.sandbox.co.in"
+

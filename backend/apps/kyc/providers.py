@@ -54,12 +54,26 @@ def normalise_pan(value: str) -> str:
 class SandboxProvider:
     name = "sandbox"
 
+    @property
+    def base_url(self) -> str:
+        """Test credentials only work against the test host.
+
+        Sandbox prefixes its keys `key_test…` / `key_live…`, so the right host
+        can be inferred rather than configured — one fewer variable to get
+        wrong, and a mismatch is a 401 that reads like bad credentials.
+        """
+        if configured := settings.SANDBOX_BASE_URL:
+            return configured
+        if settings.SANDBOX_API_KEY.startswith("key_test"):
+            return "https://test-api.sandbox.co.in"
+        return "https://api.sandbox.co.in"
+
     def _token(self) -> str:
         if cached := cache.get(TOKEN_CACHE_KEY):
             return cached
 
         response = httpx.post(
-            f"{settings.SANDBOX_BASE_URL}/authenticate",
+            f"{self.base_url}/authenticate",
             headers={
                 "x-api-key": settings.SANDBOX_API_KEY,
                 "x-api-secret": settings.SANDBOX_API_SECRET,
@@ -70,7 +84,11 @@ class SandboxProvider:
         if response.status_code != 200:
             raise KycUnavailableError(f"Sandbox authenticate returned {response.status_code}")
 
-        token = response.json().get("access_token", "")
+        # The token is nested under `data`, not at the top level. Reading the
+        # wrong path yields an empty string and every later call fails with a
+        # 401 that looks like bad credentials.
+        body = response.json() if response.content else {}
+        token = (body.get("data") or {}).get("access_token") or body.get("access_token", "")
         if not token:
             raise KycUnavailableError("Sandbox authenticate returned no token")
 
@@ -80,7 +98,7 @@ class SandboxProvider:
     def verify_pan(self, *, pan: str, name: str, date_of_birth: str = "") -> PanResult:
         try:
             response = httpx.post(
-                f"{settings.SANDBOX_BASE_URL}/kyc/pan/verify",
+                f"{self.base_url}/kyc/pan/verify",
                 headers={
                     "Authorization": self._token(),
                     "x-api-key": settings.SANDBOX_API_KEY,
@@ -110,18 +128,30 @@ class SandboxProvider:
         data = body.get("data", body)
 
         status = str(data.get("status", "")).upper()
-        if status == "VALID":
+        reference = str(body.get("transaction_id") or data.get("transaction_id") or "")
+
+        if status != "VALID":
             return PanResult(
-                verified=True,
-                name_on_record=data.get("full_name") or data.get("name_as_per_pan") or "",
-                reference=str(body.get("transaction_id") or data.get("transaction_id") or ""),
+                verified=False,
+                reason=data.get("remarks") or data.get("message")
+                       or "That PAN could not be verified.",
+                reference=reference,
             )
 
-        return PanResult(
-            verified=False,
-            reason=data.get("message") or "That PAN could not be verified.",
-            reference=str(body.get("transaction_id") or ""),
-        )
+        # A valid PAN registered to somebody else is not this donor's PAN. The
+        # API answers that separately — `status` says the number exists,
+        # `name_as_per_pan_match` says it belongs to the name submitted — and
+        # treating the first as sufficient would let anyone claim any PAN.
+        if data.get("name_as_per_pan_match") is False:
+            return PanResult(
+                verified=False,
+                reason="That PAN is registered to a different name.",
+                reference=reference,
+            )
+
+        # Sandbox returns no name, only whether ours matched — so the name on
+        # record is the one submitted, now confirmed against the register.
+        return PanResult(verified=True, name_on_record=name, reference=reference)
 
 
 class StubKycProvider:

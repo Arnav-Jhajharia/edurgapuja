@@ -162,7 +162,9 @@ CASHFREE_APP_ID = env("CASHFREE_APP_ID", default="")
 CASHFREE_SECRET_KEY = env("CASHFREE_SECRET_KEY", default="")
 CASHFREE_BASE_URL = env("CASHFREE_BASE_URL", default="https://sandbox.cashfree.com/pg")
 
-SANDBOX_BASE_URL = env("SANDBOX_BASE_URL", default="https://api.sandbox.co.in")
+# Blank by default so the host is inferred from the key prefix — Sandbox
+# test keys only work against test-api. Set it to override.
+SANDBOX_BASE_URL = env("SANDBOX_BASE_URL", default="")
 SANDBOX_API_KEY = env("SANDBOX_API_KEY", default="")
 SANDBOX_API_SECRET = env("SANDBOX_API_SECRET", default="")
 SANDBOX_API_VERSION = env("SANDBOX_API_VERSION", default="1.0")
