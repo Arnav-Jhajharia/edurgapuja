@@ -20,4 +20,9 @@ graphify-out/
 *.mov
 .env.local
 .env*.local
+# Backups the env-editing scripts leave behind. Real credentials, and they
+# were neither ignored nor .env-suffixed, so they were one `git add -A` or one
+# `railway up` away from leaving the machine.
+.env.bak*
+*.env.bak*
 .next-preview/
